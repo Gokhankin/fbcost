@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Club Adaköy - F&B Cost Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Extra styles for search highlight and card styling */
+        .highlight-text {
+            background-color: rgba(0, 180, 216, 0.3);
+            color: #fff;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+    </style>
+
+<style>
+/* Global Responsive Mobile Tweaks */
+html, body {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+}
+.container, .container-fluid, main, .main-content, .card, div {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+table {
+    display: block !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+.table-responsive, .responsive-table-wrapper {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+@media (max-width: 768px) {
+    .grid, .row, [class*="grid-cols-"] {
+        grid-template-columns: 1fr !important;
+    }
+    .flex-wrap-mobile {
+        flex-direction: column !important;
+    }
+    input, select, button {
+        font-size: 16px !important; /* Prevents auto zoom on iOS */
+    }
+}
+</style>
+
+<style>
+/* F&B Cost Mobile Typography & Spacing Fixes */
+@media (max-width: 768px) {
+    body {
+        font-size: 14px !important;
+        line-height: 1.4 !important;
+        padding: 8px !important;
+    }
+    h1, h2, h3, h4, .title {
+        font-size: 1.1rem !important;
+        line-height: 1.3 !important;
+        word-break: break-word !important;
+    }
+    .kpi-card, .card, .stat-card, div[class*="bg-"] {
+        padding: 12px !important;
+        margin-bottom: 8px !important;
+        height: auto !important;
+        min-height: auto !important;
+    }
+    .flex, .d-flex {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    table {
+        display: table !important;
+        width: 100% !important;
+        font-size: 11px !important;
+        white-space: normal !important;
+    }
+    th, td {
+        padding: 6px 4px !important;
+        word-break: break-word !important;
+    }
+}
+</style>
+
+<style>
+/* Horizontal Scrollable Tables for F&B Cost */
+.table-responsive, .overflow-x-auto, div:has(> table) {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+}
+
+table {
+    min-width: 900px !important; /* Forces full width layout so columns stay horizontal */
+    width: 100% !important;
+    white-space: nowrap !important; /* Prevents text breaking vertically into columns */
+    table-layout: auto !important;
+}
+
+th, td {
+    white-space: nowrap !important;
+    padding: 8px 12px !important;
+    word-break: normal !important;
+}
+
+th {
+    font-size: 11px !important;
+    letter-spacing: 0.5px !important;
+}
+
+td {
+    font-size: 12px !important;
+}
+</style>
+
+<style>
+/* Unlimited Horizontal & Vertical Scroll for F&B Cost Sections, Tabs, Modals & Tables */
+html, body {
+    overflow-x: auto !important;
+    max-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+.container, .container-fluid, main, section, div, .modal, .modal-dialog, .modal-body, .tab-content, .tab-pane {
+    max-width: none !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+}
+
+/* Tab and Header buttons wrapping */
+.nav, .nav-tabs, .btn-group, div:has(> button) {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+    padding-bottom: 6px !important;
+}
+
+table, .table {
+    min-width: 950px !important;
+    width: auto !important;
+    white-space: nowrap !important;
+    table-layout: auto !important;
+}
+
+th, td {
+    white-space: nowrap !important;
+    padding: 8px 12px !important;
+}
+</style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Header -->
+        <header>
+            <div class="brand-section">
+                <div class="logo-icon">F&B</div>
+                <div class="title-area">
+                    <h1>Club Adaköy F&B Maliyet Analiz Raporu</h1>
+                    <p>Haziran 2026 Dönemi — Canlı Sedna SQL Entegrasyonu</p>
+                </div>
+            </div>
+            <div class="control-panel">
+                <div style="text-align: right; margin-right: 10px;">
+                    <span style="font-size: 11px; color: var(--text-muted); display: block; font-weight: 600;">€ EUR KURU:</span>
+                    <span id="header-rate" style="font-size: 14px; font-weight: 800; color: var(--accent-green);">53.1877 TL</span>
+                </div>
+                <div class="selector-group">
+                    <button class="selector-btn active" onclick="changePaxMode('excel')" id="btn-pax-excel">Excel (2,946)</button>
+                    <button class="selector-btn" onclick="changePaxMode('paid_excl_neilson')" id="btn-pax-paid-no-neilson">Live Paid (2,946)</button>
+                    <button class="selector-btn" onclick="changePaxMode('paid_incl_neilson')" id="btn-pax-paid-neilson">Live Paid + Neilson (3,856)</button>
+                    <button class="selector-btn" onclick="changePaxMode('paid_and_comp_excl_neilson')" id="btn-pax-paid-comp">Paid + Comp (3,126)</button>
+                    <button class="selector-btn" onclick="changePaxMode('all_stays')" id="btn-pax-all">All Stays (4,036)</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- KPI Cards Row -->
+        <div class="kpi-row">
+            <div class="kpi-card" style="--card-accent: var(--accent-blue);">
+                <div class="kpi-header">
+                    <span>Toplam F&B Tüketim</span>
+                    <span class="badge badge-blue">TL</span>
+                </div>
+                <div class="kpi-value" id="kpi-total-consumption">4,327,530.36 ₺</div>
+                <div class="kpi-subtext">EUR Karşılığı: <span class="highlight" id="kpi-total-consumption-eur">81,363.36 €</span></div>
+            </div>
+            <div class="kpi-card" style="--card-accent: var(--accent-green);">
+                <div class="kpi-header">
+                    <span>Net Otel Misafir Maliyeti</span>
+                    <span class="badge badge-green">TL</span>
+                </div>
+                <div class="kpi-value" id="kpi-net-guest-cost">2,843,068.07 ₺</div>
+                <div class="kpi-subtext">EUR Karşılığı: <span class="highlight" id="kpi-net-guest-cost-eur">53,453.48 €</span></div>
+            </div>
+            <div class="kpi-card" style="--card-accent: var(--accent-purple);">
+                <div class="kpi-header">
+                    <span>Hesaplamaya Esas Pax / Geceleme</span>
+                    <span class="badge badge-purple">Kişi-Gün</span>
+                </div>
+                <div class="kpi-value" id="kpi-pax-count">2,946 Pax</div>
+                <div class="kpi-subtext">Tür: <span class="highlight" id="kpi-pax-type">Excel Tanımlı</span></div>
+            </div>
+            <div class="kpi-card" style="--card-accent: var(--accent-orange);">
+                <div class="kpi-header">
+                    <span>Kişi Başı Günlük Maliyet</span>
+                    <span class="badge badge-orange">EUR</span>
+                </div>
+                <div class="kpi-value" id="kpi-pax-cost">18.14 €</div>
+                <div class="kpi-subtext">TL Karşılığı: <span class="highlight" id="kpi-pax-cost-tl">965.04 ₺</span></div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav>
+            <button class="tab-link active" onclick="switchTab(event, 'tab-tuketim')">📊 F&B Tüketim Raporu</button>
+            <button class="tab-link" onclick="switchTab(event, 'tab-gruplar')">📁 Grup Analizleri</button>
+            <button class="tab-link" onclick="switchTab(event, 'tab-detayli')">🔍 Detaylı Stok Tüketimi</button>
+            <button class="tab-link" onclick="switchTab(event, 'tab-personel')">👥 Personel Yemekhane</button>
+            <button class="tab-link" onclick="switchTab(event, 'tab-diger')">⚓ Diğer Depolar</button>
+            <button class="tab-link" onclick="switchTab(event, 'tab-kapak')">📑 KAPAK</button>
+        </nav>
+
+        <!-- Tab 1: F&B Tüketim Raporu -->
+        <div id="tab-tuketim" class="tab-content active">
+            <div class="dashboard-grid">
+                <!-- Main Cost Table -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">F&B Net Maliyet Detayları</h2>
+                        <span id="tuketim-pax-indicator" class="badge badge-blue">Pax: 2946</span>
+                    </div>
+                    <div class="table-container">
+                        <table id="tbl-fb-tuketim">
+                            <thead>
+                                <tr>
+                                    <th>Ana Grup</th>
+                                    <th>Tüketim Tutarı (TL)</th>
+                                    <th>Extra Satış (TL)</th>
+                                    <th>Satış Maliyeti (TL)</th>
+                                    <th>Personel Cost (TL)</th>
+                                    <th>Net Maliyet (TL)</th>
+                                    <th>Ciro Prim</th>
+                                    <th>Kişi Başı TL (Staff)</th>
+                                    <th>Kişi Başı € (Staff)</th>
+                                    <th>Net Maliyet (€)</th>
+                                    <th style="color: var(--accent-orange);">K.Başı Net Cost (€)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded dynamically via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Market Sales Panel -->
+                    <div class="panel-header" style="margin-top: 30px;">
+                        <h2 class="panel-title">Market Satış ve Maliyet Detayı (KDV Hariç)</h2>
+                    </div>
+                    <div class="table-container">
+                        <table id="tbl-market">
+                            <thead>
+                                <tr>
+                                    <th>Departman</th>
+                                    <th>Satış Tutarı (TL)</th>
+                                    <th>Maliyet Tutarı (TL)</th>
+                                    <th>Net Kar (TL)</th>
+                                    <th>Net Kar (€)</th>
+                                    <th>Kar Oranı</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded dynamically via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Charts Panel -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">Maliyet Dağılımları</h2>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                        <div>
+                            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">Net Maliyet Dağılımı (€)</p>
+                            <div class="chart-container">
+                                <canvas id="chart-consumption-pie"></canvas>
+                            </div>
+                        </div>
+                        <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
+                            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">Oda Gecelemeleri Dağılımı (June 2026)</p>
+                            <div class="chart-container" style="height: 220px;">
+                                <canvas id="chart-occupancy"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Grup Analizleri -->
+        <div id="tab-gruplar" class="tab-content">
+            <div class="dashboard-grid">
+                <!-- Group Listings -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">Alt Grup Bazında Tüketim Analizi</h2>
+                        <input type="text" id="search-alt-grup" class="search-input" placeholder="Alt Grup Ara..." oninput="filterAltGrup()">
+                    </div>
+                    <div class="table-container" style="max-height: 550px; overflow-y: auto;">
+                        <table id="tbl-alt-grup">
+                            <thead>
+                                <tr>
+                                    <th>Alt Grup Adı</th>
+                                    <th>Tüketim Tutarı (TL)</th>
+                                    <th>Kişi Başı Tüketim (TL)</th>
+                                    <th>Kişi Başı Tüketim (€)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Main and Ara Groups Side Panel -->
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2 class="panel-title">Ana Grup Tüketimleri</h2>
+                        </div>
+                        <div class="table-container">
+                            <table id="tbl-ana-grup">
+                                <thead>
+                                    <tr>
+                                        <th>Ana Grup</th>
+                                        <th>Tüketim (TL)</th>
+                                        <th>K.Başı TL</th>
+                                        <th>K.Başı €</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2 class="panel-title">Ara Grup Tüketimleri</h2>
+                        </div>
+                        <div class="table-container" style="max-height: 250px; overflow-y: auto;">
+                            <table id="tbl-ara-grup">
+                                <thead>
+                                    <tr>
+                                        <th>Ara Grup</th>
+                                        <th>Tüketim (TL)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Detaylı Stok Tüketimi -->
+        <div id="tab-detayli" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Stok Kartları Bazında Tüketim Detayları</h2>
+                    <div class="filter-row" style="margin-bottom: 0;">
+                        <input type="text" id="search-stok" class="search-input" placeholder="Malzeme Adı veya Kodu Ara..." oninput="searchStok()">
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="tbl-stok-detay">
+                        <thead>
+                            <tr>
+                                <th>Malzeme Kodu</th>
+                                <th>Malzeme Adı</th>
+                                <th>Birim</th>
+                                <th>Tüketim Miktarı</th>
+                                <th>Tüketim Tutarı (TL)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stok-tbody">
+                            <!-- Loaded via pagination JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination">
+                    <div id="pagination-info">Gösterilen: 0 - 0 / Toplam: 0</div>
+                    <div class="page-controls">
+                        <button class="page-btn" id="btn-prev-page" onclick="prevPage()">Önceki</button>
+                        <button class="page-btn" id="btn-next-page" onclick="nextPage()">Sonraki</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Personel Yemekhane -->
+        <div id="tab-personel" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Personel Yemekhane Tüketim Detayları</h2>
+                </div>
+                <div class="table-container">
+                    <table id="tbl-personel">
+                        <thead>
+                            <tr>
+                                <th>Ürün Adı</th>
+                                <th>Stok Miktarı</th>
+                                <th>Birim</th>
+                                <th>Açıklama / Tüketim</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: Diğer Depolar -->
+        <div id="tab-diger" class="tab-content">
+            <div class="dashboard-grid">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">Demre Malzeme Tüketimi</h2>
+                    </div>
+                    <div class="table-container">
+                        <table id="tbl-demre">
+                            <thead>
+                                <tr>
+                                    <th>Ürün Adı</th>
+                                    <th>Stok Miktarı</th>
+                                    <th>Birim</th>
+                                    <th>Tüketim</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2 class="panel-title">Marina Sarf Depo Tüketimi</h2>
+                        </div>
+                        <div class="table-container">
+                            <table id="tbl-marina">
+                                <thead>
+                                    <tr>
+                                        <th>Ürün Adı</th>
+                                        <th>Birim</th>
+                                        <th>Miktar</th>
+                                        <th>Tutar (TL)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2 class="panel-title">Yılbaşı Gecesi Tüketimi</h2>
+                        </div>
+                        <div class="table-container">
+                            <table id="tbl-yilbasi">
+                                <thead>
+                                    <tr>
+                                        <th>Ürün Adı</th>
+                                        <th>Birim</th>
+                                        <th>Tüketim Miktarı</th>
+                                        <th>Tutar (TL)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 6: KAPAK -->
+        <div id="tab-kapak" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Orijinal Rapor Kapak Bilgileri</h2>
+                </div>
+                <div class="kapak-grid" id="kapak-grid-container">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Club Adaköy &copy; 2026. F&B Cost Otomasyon Portalı. SQL Server Canlı Bağlantısı Aktif.</p>
+        </div>
+    </div>
+
+    <!-- Pass backend variables to Javascript -->
+    <script>
+        const EXCEL_DATA = {{ excel_data | tojson | safe }};
+        const LIVE_DATA = {{ live_data | tojson | safe }};
+        
+        let currentPax = LIVE_DATA.overnights.Paid_excl_Neilson; // Default to Excel baseline-matching
+        let currentPaxMode = 'excel'; // 'excel', 'paid_excl_neilson', 'paid_incl_neilson', 'paid_and_comp_excl_neilson', 'all_stays'
+        let currentEurRate = LIVE_DATA.exchange_rates.EUR;
+        
+        // Detailed stok pagination state
+        let filteredStok = [];
+        let currentPage = 1;
+        const pageSize = 15;
+
+        // Chart instances
+        let pieChartInstance = null;
+        let barChartInstance = null;
+        let occChartInstance = null;
+
+        // Format currency helper
+        function formatTL(val) {
+            return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val);
+        }
+        
+        function formatEUR(val) {
+            return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(val);
+        }
+
+        function formatNumber(val, decimals=2) {
+            if (val === null || val === undefined || isNaN(val)) return '0';
+            let parts = parseFloat(val).toFixed(decimals).split(".");
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            return parts.join(",");
+        }
+
+        // Initialize App
+        document.addEventListener("DOMContentLoaded", function() {
+            initPaxSelection();
+            renderAllData();
+            initCharts();
+        });
+
+        function initPaxSelection() {
+            // Display exchange rate
+            document.getElementById("header-rate").textContent = formatNumber(LIVE_DATA.exchange_rates.EUR, 4) + ' TL';
+        }
+
+        function changePaxMode(mode) {
+            currentPaxMode = mode;
+            
+            // Remove active classes
+            document.querySelectorAll(".selector-btn").forEach(btn => btn.classList.remove("active"));
+            
+            let label = "";
+            if (mode === 'excel') {
+                currentPax = 2946;
+                currentEurRate = 53.187703333333324; // Excel original
+                document.getElementById("btn-pax-excel").classList.add("active");
+                label = "Excel Tanımlı";
+            } else if (mode === 'paid_excl_neilson') {
+                currentPax = LIVE_DATA.overnights.Paid_excl_Neilson;
+                currentEurRate = LIVE_DATA.exchange_rates.EUR;
+                document.getElementById("btn-pax-paid-no-neilson").classList.add("active");
+                label = "Canlı Ücretli (Neilson Hariç)";
+            } else if (mode === 'paid_incl_neilson') {
+                currentPax = LIVE_DATA.overnights.Paid_incl_Neilson;
+                currentEurRate = LIVE_DATA.exchange_rates.EUR;
+                document.getElementById("btn-pax-paid-neilson").classList.add("active");
+                label = "Canlı Ücretli (Neilson Dahil)";
+            } else if (mode === 'paid_and_comp_excl_neilson') {
+                currentPax = LIVE_DATA.overnights.Paid_and_Comp_excl_Neilson;
+                currentEurRate = LIVE_DATA.exchange_rates.EUR;
+                document.getElementById("btn-pax-paid-comp").classList.add("active");
+                label = "Ücretli + Comp (Neilson Hariç)";
+            } else if (mode === 'all_stays') {
+                currentPax = LIVE_DATA.overnights.All_Stays;
+                currentEurRate = LIVE_DATA.exchange_rates.EUR;
+                document.getElementById("btn-pax-all").classList.add("active");
+                label = "Tüm Gecelemeler (Live)";
+            }
+            
+            document.getElementById("header-rate").textContent = formatNumber(currentEurRate, 4) + ' TL';
+            document.getElementById("tuketim-pax-indicator").textContent = `Pax: ${currentPax}`;
+            
+            // Re-render
+            renderAllData();
+            updateCharts();
+        }
+
+        // Render functions
+        function renderAllData() {
+            renderKPIs();
+            renderFBTuketim();
+            renderGroups();
+            renderStokList();
+            renderStaff();
+            renderOthers();
+            renderKapak();
+        }
+
+        function renderKPIs() {
+            // Net Guest Cost is always 2,843,068.07 TL from the sheet
+            const netGuestCostTL = 2843068.07;
+            const totalConsTL = 4327530.36;
+            
+            const netGuestCostEUR = netGuestCostTL / currentEurRate;
+            const totalConsEUR = totalConsTL / currentEurRate;
+            
+            const costPerPaxEUR = netGuestCostEUR / currentPax;
+            const costPerPaxTL = netGuestCostTL / currentPax;
+            
+            document.getElementById("kpi-total-consumption").textContent = formatTL(totalConsTL);
+            document.getElementById("kpi-total-consumption-eur").textContent = formatEUR(totalConsEUR);
+            
+            document.getElementById("kpi-net-guest-cost").textContent = formatTL(netGuestCostTL);
+            document.getElementById("kpi-net-guest-cost-eur").textContent = formatEUR(netGuestCostEUR);
+            
+            document.getElementById("kpi-pax-count").textContent = formatNumber(currentPax, 0) + " Pax-Gece";
+            
+            let label = "Excel Tanımlı";
+            if (currentPaxMode === 'paid_excl_neilson') label = "Live Ücretli (-Neilson)";
+            else if (currentPaxMode === 'paid_incl_neilson') label = "Live Ücretli (+Neilson)";
+            else if (currentPaxMode === 'paid_and_comp_excl_neilson') label = "Ücretli + Comp";
+            else if (currentPaxMode === 'all_stays') label = "Tüm Gecelemeler";
+            document.getElementById("kpi-pax-type").textContent = label;
+            
+            document.getElementById("kpi-pax-cost").textContent = formatEUR(costPerPaxEUR);
+            document.getElementById("kpi-pax-cost-tl").textContent = formatTL(costPerPaxTL);
+        }
+
+        function renderFBTuketim() {
+            // We have static data from FB_Tuketim
+            const rows = EXCEL_DATA.FB_Tuketim;
+            const tbody = document.querySelector("#tbl-fb-tuketim tbody");
+            tbody.innerHTML = "";
+            
+            // Food: row index 18 (C19)
+            // Beverages: row index 19 (C20)
+            // Alcohol: row index 20 (C21)
+            // Total: row index 21 (C22)
+            
+            const items = [
+                { name: "Yiyecek", key: 10 },
+                { name: "İçecekler", key: 11 },
+                { name: "Alkollü İçecekler", key: 12 },
+                { name: "TOPLAM", key: 13, isTotal: true }
+            ];
+            
+            items.forEach(item => {
+                const excelRow = rows[item.key];
+                
+                // Excel values
+                const consumption = parseFloat(excelRow[3]); // D
+                const extraSales = parseFloat(excelRow[4] || 0); // E
+                const salesCost = parseFloat(excelRow[5] || 0); // F
+                const staffCost = parseFloat(excelRow[6] || 0); // G
+                const netCostTL = parseFloat(excelRow[7]); // H
+                const ciroPrim = parseFloat(excelRow[8] || 0); // I
+                const netConsumption = parseFloat(excelRow[9]); // J
+                
+                // Recalculations based on user settings
+                const netCostEUR = netCostTL / currentEurRate;
+                const costPerPaxEUR = netCostEUR / currentPax;
+                
+                const staffCostPerPaxTL = netConsumption / currentPax; // J is net consumption which represents staff canteen cost when netCost is subtracted
+                const staffCostPerPaxEUR = staffCostPerPaxTL / currentEurRate;
+                
+                const tr = document.createElement("tr");
+                if (item.isTotal) tr.className = "total-row";
+                
+                tr.innerHTML = `
+                    <td><strong>${item.name}</strong></td>
+                    <td>${formatNumber(consumption)} ₺</td>
+                    <td>${extraSales > 0 ? formatNumber(extraSales) + ' ₺' : '—'}</td>
+                    <td>${salesCost > 0 ? formatNumber(salesCost) + ' ₺' : '—'}</td>
+                    <td>${staffCost > 0 ? formatNumber(staffCost) + ' ₺' : '—'}</td>
+                    <td class="highlight-row"><strong>${formatNumber(netCostTL)} ₺</strong></td>
+                    <td>${ciroPrim > 0 ? formatNumber(ciroPrim) + ' ₺' : '—'}</td>
+                    <td>${formatNumber(staffCostPerPaxTL)} ₺</td>
+                    <td>${formatNumber(staffCostPerPaxEUR, 3)} €</td>
+                    <td style="color: var(--accent-blue);"><strong>${formatNumber(netCostEUR)} €</strong></td>
+                    <td style="color: var(--accent-orange); font-weight:700;">${formatNumber(costPerPaxEUR, 3)} €</td>
+                `;
+                
+                tbody.appendChild(tr);
+            });
+            
+            // Market Sales
+            // Row index 15 (Market Satış)
+            const marketRow = rows[15];
+            const mtbody = document.querySelector("#tbl-market tbody");
+            mtbody.innerHTML = "";
+            
+            const sales = parseFloat(marketRow[3]);
+            const cost = parseFloat(marketRow[4]);
+            const profit = sales - cost;
+            const profitEur = profit / currentEurRate;
+            const profitRatio = (profit / sales) * 100;
+            
+            const trm = document.createElement("tr");
+            trm.innerHTML = `
+                <td><strong>Market Satış</strong></td>
+                <td>${formatNumber(sales)} ₺</td>
+                <td>${formatNumber(cost)} ₺</td>
+                <td style="color: var(--accent-green); font-weight:700;">${formatNumber(profit)} ₺</td>
+                <td style="color: var(--accent-blue); font-weight:700;">${formatNumber(profitEur)} €</td>
+                <td><span class="badge badge-green">${formatNumber(profitRatio, 1)}%</span></td>
+            `;
+            mtbody.appendChild(trm);
+        }
+
+        function renderGroups() {
+            // Ana Grup
+            const anaRows = EXCEL_DATA.AnaGrup;
+            const anaTbody = document.querySelector("#tbl-ana-grup tbody");
+            anaTbody.innerHTML = "";
+            
+            // Index 2, 3, 4 are the food, bev, clean groups
+            for (let i = 2; i < 7; i++) {
+                if (i >= anaRows.length) break;
+                const row = anaRows[i];
+                if (!row[1]) continue;
+                
+                const val = parseFloat(row[2]);
+                const perPaxTL = val / currentPax;
+                const perPaxEUR = perPaxTL / currentEurRate;
+                
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td><strong>${row[1]}</strong></td>
+                    <td>${formatNumber(val)} ₺</td>
+                    <td>${formatNumber(perPaxTL)} ₺</td>
+                    <td style="color: var(--accent-blue);">${formatNumber(perPaxEUR, 3)} €</td>
+                `;
+                anaTbody.appendChild(tr);
+            }
+            
+            // Ara Grup
+            const araRows = EXCEL_DATA.AraGrup;
+            const araTbody = document.querySelector("#tbl-ara-grup tbody");
+            araTbody.innerHTML = "";
+            
+            for (let i = 2; i < araRows.length; i++) {
+                const row = araRows[i];
+                if (!row[1]) continue;
+                
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${row[1]}</td>
+                    <td style="font-weight: 600;">${formatNumber(row[2])} ₺</td>
+                `;
+                araTbody.appendChild(tr);
+            }
+            
+            // Alt Grup
+            filterAltGrup();
+        }
+
+        function filterAltGrup() {
+            const altRows = EXCEL_DATA.AltGrup;
+            const query = document.getElementById("search-alt-grup").value.toLowerCase();
+            const tbody = document.querySelector("#tbl-alt-grup tbody");
+            tbody.innerHTML = "";
+            
+            for (let i = 2; i < altRows.length; i++) {
+                const row = altRows[i];
+                if (!row[0]) continue;
+                
+                const name = row[0];
+                if (query && !name.toLowerCase().includes(query)) continue;
+                
+                const val = parseFloat(row[1]);
+                const perPaxTL = val / currentPax;
+                const perPaxEUR = perPaxTL / currentEurRate;
+                
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${highlightText(name, query)}</td>
+                    <td><strong>${formatNumber(val)} ₺</strong></td>
+                    <td>${formatNumber(perPaxTL)} ₺</td>
+                    <td style="color: var(--accent-orange);">${formatNumber(perPaxEUR, 3)} €</td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        // Detailed Stock pagination and search
+        function searchStok() {
+            currentPage = 1;
+            renderStokList();
+        }
+
+        function renderStokList() {
+            const rawStok = EXCEL_DATA.DetayliStok;
+            const query = document.getElementById("search-stok").value.toLowerCase();
+            
+            filteredStok = [];
+            // Excel DetayliStok format: row 0 is title, row 1 is header
+            // Data starts at index 2
+            for (let i = 2; i < rawStok.length; i++) {
+                const row = rawStok[i];
+                if (!row[1] && !row[2]) continue; // Skip empty rows
+                
+                const code = row[0] || '';
+                const name = row[1] || '';
+                const unit = row[2] || '';
+                const qty = parseFloat(row[3] || 0);
+                const amount = parseFloat(row[4] || 0);
+                
+                if (query && !code.toLowerCase().includes(query) && !name.toLowerCase().includes(query)) {
+                    continue;
+                }
+                
+                filteredStok.push({ code, name, unit, qty, amount });
+            }
+            
+            // Sort by amount descending
+            filteredStok.sort((a, b) => b.amount - a.amount);
+            
+            // Paginate
+            const total = filteredStok.length;
+            const totalPages = Math.ceil(total / pageSize);
+            
+            if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
+            
+            const start = (currentPage - 1) * pageSize;
+            const end = Math.min(start + pageSize, total);
+            
+            const tbody = document.getElementById("stok-tbody");
+            tbody.innerHTML = "";
+            
+            for (let i = start; i < end; i++) {
+                const item = filteredStok[i];
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td><span class="badge badge-blue">${item.code}</span></td>
+                    <td>${highlightText(item.name, query)}</td>
+                    <td>${item.unit}</td>
+                    <td>${formatNumber(item.qty, 1)}</td>
+                    <td style="font-weight: 700; color: var(--accent-green);">${formatNumber(item.amount)} ₺</td>
+                `;
+                tbody.appendChild(tr);
+            }
+            
+            // Update pagination UI
+            document.getElementById("pagination-info").textContent = `Gösterilen: ${total > 0 ? start + 1 : 0} - ${end} / Toplam: ${total}`;
+            document.getElementById("btn-prev-page").disabled = (currentPage === 1);
+            document.getElementById("btn-next-page").disabled = (currentPage === totalPages || totalPages === 0);
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderStokList();
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(filteredStok.length / pageSize);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderStokList();
+            }
+        }
+
+        // Render Staff Canteen
+        function renderStaff() {
+            const rows = EXCEL_DATA.Personel;
+            const tbody = document.querySelector("#tbl-personel tbody");
+            tbody.innerHTML = "";
+            
+            // Starts at index 2
+            for (let i = 2; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row[1]) continue;
+                
+                const name = row[1];
+                const unit = row[2];
+                const qty = row[3];
+                const amount = row[4];
+                
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td><strong>${name}</strong></td>
+                    <td>${qty !== null ? formatNumber(qty, 1) : '—'}</td>
+                    <td><span class="badge badge-blue">${unit || '—'}</span></td>
+                    <td style="color: var(--accent-red); font-weight:600;">${amount !== null ? formatNumber(amount) + ' ₺' : '—'}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        // Render Others (Demre, Marina, Yılbaşı)
+        function renderOthers() {
+            // Demre
+            const demreRows = EXCEL_DATA.Demre;
+            const demreTbody = document.querySelector("#tbl-demre tbody");
+            demreTbody.innerHTML = "";
+            for (let i = 1; i < demreRows.length; i++) {
+                const row = demreRows[i];
+                if (!row[1]) continue;
+                
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${row[1]}</td>
+                    <td>${row[2] !== null ? formatNumber(row[2], 1) : '—'}</td>
+                    <td>${row[3] || '—'}</td>
+                    <td style="font-weight: 600; color: var(--accent-orange);">${row[4] !== null ? formatNumber(row[4], 1) : '—'}</td>
+                `;
+                demreTbody.appendChild(tr);
+            }
+            
+            // Marina
+            const marinaRows = EXCEL_DATA.Marina;
+            const marinaTbody = document.querySelector("#tbl-marina tbody");
+            marinaTbody.innerHTML = "";
+            for (let i = 1; i < marinaRows.length; i++) {
+                const row = marinaRows[i];
+                if (!row[1]) continue;
+                
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${row[1]}</td>
+                    <td>${row[2] || '—'}</td>
+                    <td>${row[3] !== null ? formatNumber(row[3], 1) : '—'}</td>
+                    <td style="font-weight: 600; color: var(--accent-green);">${row[4] !== null ? formatNumber(row[4]) + ' ₺' : '—'}</td>
+                `;
+                marinaTbody.appendChild(tr);
+            }
+            
+            // Yılbaşı
+            const yilRows = EXCEL_DATA.Yilbasi;
+            const yilTbody = document.querySelector("#tbl-yilbasi tbody");
+            yilTbody.innerHTML = "";
+            for (let i = 1; i < yilRows.length; i++) {
+                const row = yilRows[i];
+                if (!row[1]) continue;
+                
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${row[1]}</td>
+                    <td><span class="badge badge-blue">${row[2] || '—'}</span></td>
+                    <td>${row[3] !== null ? formatNumber(row[3], 1) : '—'}</td>
+                    <td style="font-weight: 600; color: var(--accent-purple);">${row[4] !== null ? formatNumber(row[4]) + ' ₺' : '—'}</td>
+                `;
+                yilTbody.appendChild(tr);
+            }
+        }
+
+        // Render Kapak
+        function renderKapak() {
+            const rows = EXCEL_DATA.KAPAK;
+            const container = document.getElementById("kapak-grid-container");
+            container.innerHTML = "";
+            
+            rows.forEach(row => {
+                // Find non-empty cells
+                const cleanRow = row.filter(c => c !== null && c !== "");
+                if (cleanRow.length >= 2) {
+                    const item = document.createElement("div");
+                    item.className = "kapak-item";
+                    item.innerHTML = `
+                        <span class="kapak-label">${cleanRow[0]}</span>
+                        <span class="kapak-value">${cleanRow[1]}</span>
+                    `;
+                    container.appendChild(item);
+                }
+            });
+        }
+
+        // Highlight matching search text
+        function highlightText(text, search) {
+            if (!search) return text;
+            const regex = new RegExp(`(${search})`, 'gi');
+            return text.replace(regex, `<span class="highlight-text">$1</span>`);
+        }
+
+        // Tab Navigation
+        function switchTab(evt, tabId) {
+            // Hide all tab content
+            document.querySelectorAll(".tab-content").forEach(content => {
+                content.classList.remove("active");
+            });
+            
+            // Remove active class from tab links
+            document.querySelectorAll(".tab-link").forEach(link => {
+                link.classList.remove("active");
+            });
+            
+            // Show current tab content and active state
+            document.getElementById(tabId).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        // Chart.js implementation
+        function initCharts() {
+            // Doughnut chart (Food, Beverage, Alcohol breakdown)
+            const ctxPie = document.getElementById("chart-consumption-pie").getContext('2d');
+            pieChartInstance = new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Yiyecek', 'İçecekler', 'Alkollü İçecekler'],
+                    datasets: [{
+                        data: [53453.48, 3710.89, 7062.36], // EUR values
+                        backgroundColor: ['#00b4d8', '#06d6a0', '#7209b7'],
+                        borderWidth: 0,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#f8fafc',
+                                font: {
+                                    family: 'Plus Jakarta Sans',
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Occupancy breakdown chart
+            const ctxOcc = document.getElementById("chart-occupancy").getContext('2d');
+            occChartInstance = new Chart(ctxOcc, {
+                type: 'pie',
+                data: {
+                    labels: ['AI (Paid)', 'HB (Paid)', 'BB (Paid)', 'Neilson', 'Comp (Free)'],
+                    datasets: [{
+                        data: [
+                            LIVE_DATA.overnights.AI,
+                            LIVE_DATA.overnights.HB,
+                            LIVE_DATA.overnights.BB,
+                            LIVE_DATA.overnights.Neilson,
+                            LIVE_DATA.overnights.Comp
+                        ],
+                        backgroundColor: ['#ef476f', '#f77f00', '#06d6a0', '#00b4d8', '#7209b7'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#f8fafc',
+                                font: {
+                                    family: 'Plus Jakarta Sans',
+                                    size: 11
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCharts() {
+            if (pieChartInstance) {
+                // Update pie chart with recalculated EUR values based on current exchange rate
+                const foodNetEur = 2270063.10 / currentEurRate;
+                const bevNetEur = 197373.97 / currentEurRate;
+                const alcNetEur = 375630.99 / currentEurRate;
+                
+                pieChartInstance.data.datasets[0].data = [foodNetEur, bevNetEur, alcNetEur];
+                pieChartInstance.update();
+            }
+        }
+    </script>
+</body>
+</html>
