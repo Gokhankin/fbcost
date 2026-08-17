@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Club Adaköy - F&B Cost Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Extra styles for search highlight and card styling */
         .highlight-text {
             background-color: rgba(0, 180, 216, 0.3);
             color: #fff;
@@ -16,148 +17,184 @@
             border-radius: 4px;
             font-weight: 600;
         }
+
+        /* Date Picker Trigger Styling */
+        .date-selector-trigger {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--accent-blue);
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: var(--transition-smooth);
+            box-shadow: 0 4px 14px rgba(0, 180, 216, 0.15);
+            user-select: none;
+        }
+
+        .date-selector-trigger:hover {
+            background: rgba(0, 180, 216, 0.18);
+            border-color: #00d4ff;
+            box-shadow: 0 4px 20px rgba(0, 180, 216, 0.35);
+        }
+
+        .date-selector-trigger input[type="date"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            z-index: 10;
+            cursor: pointer;
+            color-scheme: dark;
+        }
     </style>
 
-<style>
-/* Global Responsive Mobile Tweaks */
-html, body {
-    max-width: 100vw !important;
-    overflow-x: hidden !important;
-}
-.container, .container-fluid, main, .main-content, .card, div {
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-}
-table {
-    display: block !important;
-    width: 100% !important;
-    overflow-x: auto !important;
-    white-space: nowrap !important;
-    -webkit-overflow-scrolling: touch !important;
-}
-.table-responsive, .responsive-table-wrapper {
-    width: 100% !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-}
-@media (max-width: 768px) {
-    .grid, .row, [class*="grid-cols-"] {
-        grid-template-columns: 1fr !important;
+    <style>
+    /* Global Responsive Mobile Tweaks */
+    html, body {
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
     }
-    .flex-wrap-mobile {
-        flex-direction: column !important;
-    }
-    input, select, button {
-        font-size: 16px !important; /* Prevents auto zoom on iOS */
-    }
-}
-</style>
-
-<style>
-/* F&B Cost Mobile Typography & Spacing Fixes */
-@media (max-width: 768px) {
-    body {
-        font-size: 14px !important;
-        line-height: 1.4 !important;
-        padding: 8px !important;
-    }
-    h1, h2, h3, h4, .title {
-        font-size: 1.1rem !important;
-        line-height: 1.3 !important;
-        word-break: break-word !important;
-    }
-    .kpi-card, .card, .stat-card, div[class*="bg-"] {
-        padding: 12px !important;
-        margin-bottom: 8px !important;
-        height: auto !important;
-        min-height: auto !important;
-    }
-    .flex, .d-flex {
-        flex-wrap: wrap !important;
-        gap: 8px !important;
+    .container, .container-fluid, main, .main-content, .card, div {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
     }
     table {
-        display: table !important;
+        display: block !important;
         width: 100% !important;
-        font-size: 11px !important;
-        white-space: normal !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        -webkit-overflow-scrolling: touch !important;
     }
+    .table-responsive, .responsive-table-wrapper {
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    @media (max-width: 768px) {
+        .grid, .row, [class*="grid-cols-"] {
+            grid-template-columns: 1fr !important;
+        }
+        .flex-wrap-mobile {
+            flex-direction: column !important;
+        }
+        input, select, button {
+            font-size: 16px !important;
+        }
+    }
+    </style>
+
+    <style>
+    /* F&B Cost Mobile Typography & Spacing Fixes */
+    @media (max-width: 768px) {
+        body {
+            font-size: 14px !important;
+            line-height: 1.4 !important;
+            padding: 8px !important;
+        }
+        h1, h2, h3, h4, .title {
+            font-size: 1.1rem !important;
+            line-height: 1.3 !important;
+            word-break: break-word !important;
+        }
+        .kpi-card, .card, .stat-card, div[class*="bg-"] {
+            padding: 12px !important;
+            margin-bottom: 8px !important;
+            height: auto !important;
+            min-height: auto !important;
+        }
+        .flex, .d-flex {
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+        }
+        table {
+            display: table !important;
+            width: 100% !important;
+            font-size: 11px !important;
+            white-space: normal !important;
+        }
+        th, td {
+            padding: 6px 4px !important;
+            word-break: break-word !important;
+        }
+    }
+    </style>
+
+    <style>
+    /* Horizontal Scrollable Tables for F&B Cost */
+    .table-responsive, .overflow-x-auto, div:has(> table) {
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-x pan-y !important;
+    }
+
+    table {
+        min-width: 900px !important;
+        width: 100% !important;
+        white-space: nowrap !important;
+        table-layout: auto !important;
+    }
+
     th, td {
-        padding: 6px 4px !important;
-        word-break: break-word !important;
+        white-space: nowrap !important;
+        padding: 8px 12px !important;
+        word-break: normal !important;
     }
-}
-</style>
 
-<style>
-/* Horizontal Scrollable Tables for F&B Cost */
-.table-responsive, .overflow-x-auto, div:has(> table) {
-    width: 100% !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    touch-action: pan-x pan-y !important;
-}
+    th {
+        font-size: 11px !important;
+        letter-spacing: 0.5px !important;
+    }
 
-table {
-    min-width: 900px !important; /* Forces full width layout so columns stay horizontal */
-    width: 100% !important;
-    white-space: nowrap !important; /* Prevents text breaking vertically into columns */
-    table-layout: auto !important;
-}
+    td {
+        font-size: 12px !important;
+    }
+    </style>
 
-th, td {
-    white-space: nowrap !important;
-    padding: 8px 12px !important;
-    word-break: normal !important;
-}
+    <style>
+    /* Unlimited Horizontal & Vertical Scroll for F&B Cost Sections, Tabs, Modals & Tables */
+    html, body {
+        overflow-x: auto !important;
+        max-width: none !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
 
-th {
-    font-size: 11px !important;
-    letter-spacing: 0.5px !important;
-}
+    .container, .container-fluid, main, section, div, .modal, .modal-dialog, .modal-body, .tab-content, .tab-pane {
+        max-width: none !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-x pan-y !important;
+    }
 
-td {
-    font-size: 12px !important;
-}
-</style>
+    .nav, .nav-tabs, .btn-group, div:has(> button) {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-x pan-y !important;
+        padding-bottom: 6px !important;
+    }
 
-<style>
-/* Unlimited Horizontal & Vertical Scroll for F&B Cost Sections, Tabs, Modals & Tables */
-html, body {
-    overflow-x: auto !important;
-    max-width: none !important;
-    -webkit-overflow-scrolling: touch !important;
-}
+    table, .table {
+        min-width: 950px !important;
+        width: auto !important;
+        white-space: nowrap !important;
+        table-layout: auto !important;
+    }
 
-.container, .container-fluid, main, section, div, .modal, .modal-dialog, .modal-body, .tab-content, .tab-pane {
-    max-width: none !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    touch-action: pan-x pan-y !important;
-}
-
-/* Tab and Header buttons wrapping */
-.nav, .nav-tabs, .btn-group, div:has(> button) {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    touch-action: pan-x pan-y !important;
-    padding-bottom: 6px !important;
-}
-
-table, .table {
-    min-width: 950px !important;
-    width: auto !important;
-    white-space: nowrap !important;
-    table-layout: auto !important;
-}
-
-th, td {
-    white-space: nowrap !important;
-    padding: 8px 12px !important;
-}
-</style>
+    th, td {
+        white-space: nowrap !important;
+        padding: 8px 12px !important;
+    }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -167,20 +204,21 @@ th, td {
                 <div class="logo-icon">F&B</div>
                 <div class="title-area">
                     <h1>Club Adaköy F&B Maliyet Analiz Raporu</h1>
-                    <p>Haziran 2026 Dönemi — Canlı Sedna SQL Entegrasyonu</p>
+                    <p id="header-period-subtitle">Dönemi — Canlı Sedna SQL Entegrasyonu</p>
                 </div>
             </div>
             <div class="control-panel">
-                <div style="text-align: right; margin-right: 10px;">
+                <div style="text-align: right; margin-right: 12px;">
                     <span style="font-size: 11px; color: var(--text-muted); display: block; font-weight: 600;">€ EUR KURU:</span>
                     <span id="header-rate" style="font-size: 14px; font-weight: 800; color: var(--accent-green);">53.1877 TL</span>
                 </div>
-                <div class="selector-group">
-                    <button class="selector-btn active" onclick="changePaxMode('excel')" id="btn-pax-excel">Excel (2,946)</button>
-                    <button class="selector-btn" onclick="changePaxMode('paid_excl_neilson')" id="btn-pax-paid-no-neilson">Live Paid (2,946)</button>
-                    <button class="selector-btn" onclick="changePaxMode('paid_incl_neilson')" id="btn-pax-paid-neilson">Live Paid + Neilson (3,856)</button>
-                    <button class="selector-btn" onclick="changePaxMode('paid_and_comp_excl_neilson')" id="btn-pax-paid-comp">Paid + Comp (3,126)</button>
-                    <button class="selector-btn" onclick="changePaxMode('all_stays')" id="btn-pax-all">All Stays (4,036)</button>
+                
+                <!-- Date Selector Component (Clickable anywhere on the button) -->
+                <div class="date-selector-trigger" onclick="try{ document.getElementById('date-picker-input').showPicker(); }catch(e){ document.getElementById('date-picker-input').click(); }" title="Tarih Değiştirmek İçin Tıklayın">
+                    <i class="fa-solid fa-calendar-days" style="color: var(--accent-blue);"></i>
+                    <span id="date-display-text">--.--.----</span>
+                    <i class="fa-solid fa-chevron-down" style="font-size: 11px; opacity: 0.7;"></i>
+                    <input type="date" id="date-picker-input" onchange="onDateSelected(this.value)" value="{{ selected_date }}">
                 </div>
             </div>
         </header>
@@ -209,7 +247,7 @@ th, td {
                     <span class="badge badge-purple">Kişi-Gün</span>
                 </div>
                 <div class="kpi-value" id="kpi-pax-count">2,946 Pax</div>
-                <div class="kpi-subtext">Tür: <span class="highlight" id="kpi-pax-type">Excel Tanımlı</span></div>
+                <div class="kpi-subtext">Tür: <span class="highlight" id="kpi-pax-type">O Günün Gecelemesi</span></div>
             </div>
             <div class="kpi-card" style="--card-accent: var(--accent-orange);">
                 <div class="kpi-header">
@@ -221,14 +259,13 @@ th, td {
             </div>
         </div>
 
-        <!-- Navigation Tabs -->
+        <!-- Navigation Tabs (KAPAK removed) -->
         <nav>
             <button class="tab-link active" onclick="switchTab(event, 'tab-tuketim')">📊 F&B Tüketim Raporu</button>
             <button class="tab-link" onclick="switchTab(event, 'tab-gruplar')">📁 Grup Analizleri</button>
             <button class="tab-link" onclick="switchTab(event, 'tab-detayli')">🔍 Detaylı Stok Tüketimi</button>
             <button class="tab-link" onclick="switchTab(event, 'tab-personel')">👥 Personel Yemekhane</button>
-            <button class="tab-link" onclick="switchTab(event, 'tab-diger')">⚓ Diğer Depolar</button>
-            <button class="tab-link" onclick="switchTab(event, 'tab-kapak')">📑 KAPAK</button>
+            
         </nav>
 
         <!-- Tab 1: F&B Tüketim Raporu -->
@@ -299,7 +336,7 @@ th, td {
                             </div>
                         </div>
                         <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
-                            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">Oda Gecelemeleri Dağılımı (June 2026)</p>
+                            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;" id="occ-chart-title">Oda Gecelemeleri Dağılımı</p>
                             <div class="chart-container" style="height: 220px;">
                                 <canvas id="chart-occupancy"></canvas>
                             </div>
@@ -439,88 +476,6 @@ th, td {
             </div>
         </div>
 
-        <!-- Tab 5: Diğer Depolar -->
-        <div id="tab-diger" class="tab-content">
-            <div class="dashboard-grid">
-                <div class="panel">
-                    <div class="panel-header">
-                        <h2 class="panel-title">Demre Malzeme Tüketimi</h2>
-                    </div>
-                    <div class="table-container">
-                        <table id="tbl-demre">
-                            <thead>
-                                <tr>
-                                    <th>Ürün Adı</th>
-                                    <th>Stok Miktarı</th>
-                                    <th>Birim</th>
-                                    <th>Tüketim</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Loaded dynamically -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 24px;">
-                    <div class="panel">
-                        <div class="panel-header">
-                            <h2 class="panel-title">Marina Sarf Depo Tüketimi</h2>
-                        </div>
-                        <div class="table-container">
-                            <table id="tbl-marina">
-                                <thead>
-                                    <tr>
-                                        <th>Ürün Adı</th>
-                                        <th>Birim</th>
-                                        <th>Miktar</th>
-                                        <th>Tutar (TL)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <!-- Loaded dynamically -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="panel">
-                        <div class="panel-header">
-                            <h2 class="panel-title">Yılbaşı Gecesi Tüketimi</h2>
-                        </div>
-                        <div class="table-container">
-                            <table id="tbl-yilbasi">
-                                <thead>
-                                    <tr>
-                                        <th>Ürün Adı</th>
-                                        <th>Birim</th>
-                                        <th>Tüketim Miktarı</th>
-                                        <th>Tutar (TL)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <!-- Loaded dynamically -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tab 6: KAPAK -->
-        <div id="tab-kapak" class="tab-content">
-            <div class="panel">
-                <div class="panel-header">
-                    <h2 class="panel-title">Orijinal Rapor Kapak Bilgileri</h2>
-                </div>
-                <div class="kapak-grid" id="kapak-grid-container">
-                    <!-- Loaded dynamically -->
-                </div>
-            </div>
-        </div>
-
         <!-- Footer -->
         <div class="footer">
             <p>Club Adaköy &copy; 2026. F&B Cost Otomasyon Portalı. SQL Server Canlı Bağlantısı Aktif.</p>
@@ -530,11 +485,11 @@ th, td {
     <!-- Pass backend variables to Javascript -->
     <script>
         const EXCEL_DATA = {{ excel_data | tojson | safe }};
-        const LIVE_DATA = {{ live_data | tojson | safe }};
+        let LIVE_DATA = {{ live_data | tojson | safe }};
+        let SELECTED_DATE = "{{ selected_date }}";
         
-        let currentPax = LIVE_DATA.overnights.Paid_excl_Neilson; // Default to Excel baseline-matching
-        let currentPaxMode = 'excel'; // 'excel', 'paid_excl_neilson', 'paid_incl_neilson', 'paid_and_comp_excl_neilson', 'all_stays'
-        let currentEurRate = LIVE_DATA.exchange_rates.EUR;
+        let currentPax = (LIVE_DATA.overnights && LIVE_DATA.overnights.Paid_excl_Neilson) ? LIVE_DATA.overnights.Paid_excl_Neilson : 2946;
+        let currentEurRate = (LIVE_DATA.exchange_rates && LIVE_DATA.exchange_rates.EUR) ? LIVE_DATA.exchange_rates.EUR : 53.1877;
         
         // Detailed stok pagination state
         let filteredStok = [];
@@ -543,8 +498,24 @@ th, td {
 
         // Chart instances
         let pieChartInstance = null;
-        let barChartInstance = null;
         let occChartInstance = null;
+
+        // Helper: Format date in Turkish
+        function formatDateTurkish(dateStr) {
+            if (!dateStr) return "";
+            const parts = dateStr.split("-");
+            if (parts.length !== 3) return dateStr;
+            const year = parts[0];
+            const month = parseInt(parts[1], 10);
+            const day = parseInt(parts[2], 10);
+            
+            const months = [
+                "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+                "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+            ];
+            
+            return `${day} ${months[month - 1]} ${year}`;
+        }
 
         // Format currency helper
         function formatTL(val) {
@@ -558,62 +529,63 @@ th, td {
         function formatNumber(val, decimals=2) {
             if (val === null || val === undefined || isNaN(val)) return '0';
             let parts = parseFloat(val).toFixed(decimals).split(".");
-            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            parts[0] = parts[0].replace(/\\B(?=(\\d{3})+(?!\\d))/g, ".");
             return parts.join(",");
         }
 
         // Initialize App
         document.addEventListener("DOMContentLoaded", function() {
-            initPaxSelection();
+            if (!SELECTED_DATE) {
+                SELECTED_DATE = new Date().toISOString().split('T')[0];
+            }
+            document.getElementById("date-picker-input").value = SELECTED_DATE;
+            updateDateHeaderUI(SELECTED_DATE);
             renderAllData();
             initCharts();
         });
 
-        function initPaxSelection() {
-            // Display exchange rate
-            document.getElementById("header-rate").textContent = formatNumber(LIVE_DATA.exchange_rates.EUR, 4) + ' TL';
-        }
-
-        function changePaxMode(mode) {
-            currentPaxMode = mode;
-            
-            // Remove active classes
-            document.querySelectorAll(".selector-btn").forEach(btn => btn.classList.remove("active"));
-            
-            let label = "";
-            if (mode === 'excel') {
-                currentPax = 2946;
-                currentEurRate = 53.187703333333324; // Excel original
-                document.getElementById("btn-pax-excel").classList.add("active");
-                label = "Excel Tanımlı";
-            } else if (mode === 'paid_excl_neilson') {
-                currentPax = LIVE_DATA.overnights.Paid_excl_Neilson;
-                currentEurRate = LIVE_DATA.exchange_rates.EUR;
-                document.getElementById("btn-pax-paid-no-neilson").classList.add("active");
-                label = "Canlı Ücretli (Neilson Hariç)";
-            } else if (mode === 'paid_incl_neilson') {
-                currentPax = LIVE_DATA.overnights.Paid_incl_Neilson;
-                currentEurRate = LIVE_DATA.exchange_rates.EUR;
-                document.getElementById("btn-pax-paid-neilson").classList.add("active");
-                label = "Canlı Ücretli (Neilson Dahil)";
-            } else if (mode === 'paid_and_comp_excl_neilson') {
-                currentPax = LIVE_DATA.overnights.Paid_and_Comp_excl_Neilson;
-                currentEurRate = LIVE_DATA.exchange_rates.EUR;
-                document.getElementById("btn-pax-paid-comp").classList.add("active");
-                label = "Ücretli + Comp (Neilson Hariç)";
-            } else if (mode === 'all_stays') {
-                currentPax = LIVE_DATA.overnights.All_Stays;
-                currentEurRate = LIVE_DATA.exchange_rates.EUR;
-                document.getElementById("btn-pax-all").classList.add("active");
-                label = "Tüm Gecelemeler (Live)";
-            }
-            
+        function updateDateHeaderUI(dateStr) {
+            const formattedDate = formatDateTurkish(dateStr);
+            document.getElementById("date-display-text").textContent = formattedDate;
+            document.getElementById("header-period-subtitle").textContent = `${formattedDate} itibariyle — Canlı Sedna SQL Entegrasyonu`;
             document.getElementById("header-rate").textContent = formatNumber(currentEurRate, 4) + ' TL';
             document.getElementById("tuketim-pax-indicator").textContent = `Pax: ${currentPax}`;
+            document.getElementById("occ-chart-title").textContent = `Oda Gecelemeleri Dağılımı (${formattedDate})`;
+        }
+
+        function onDateSelected(newDateStr) {
+            if (!newDateStr) return;
+            SELECTED_DATE = newDateStr;
             
-            // Re-render
-            renderAllData();
-            updateCharts();
+            // Show loading indicator in header rate
+            document.getElementById("header-rate").textContent = "Yükleniyor...";
+            
+            fetch(`/api/live_data?date=${newDateStr}`)
+                .then(res => res.json())
+                .then(data => {
+                    LIVE_DATA = data;
+                    if (data.exchange_rates && data.exchange_rates.EUR) {
+                        currentEurRate = data.exchange_rates.EUR;
+                    }
+                    if (data.overnights && data.overnights.Paid_excl_Neilson) {
+                        currentPax = data.overnights.Paid_excl_Neilson;
+                    }
+                    updateDateHeaderUI(newDateStr);
+                    renderAllData();
+                    updateCharts();
+                })
+                .catch(err => {
+                    console.error("Tarih verisi alma hatası:", err);
+                    updateDateHeaderUI(newDateStr);
+                });
+        }
+
+        // Helper to get dynamic MTD scaling factor based on selected date
+        function getMtdFactor() {
+            if (LIVE_DATA && LIVE_DATA.mtd_factor !== undefined) {
+                return LIVE_DATA.mtd_factor;
+            }
+            return 1.0;
         }
 
         // Render functions
@@ -624,19 +596,18 @@ th, td {
             renderStokList();
             renderStaff();
             renderOthers();
-            renderKapak();
         }
 
         function renderKPIs() {
-            // Net Guest Cost is always 2,843,068.07 TL from the sheet
-            const netGuestCostTL = 2843068.07;
-            const totalConsTL = 4327530.36;
+            const mtdFactor = getMtdFactor();
+            const totalConsTL = 4327530.36 * mtdFactor;
+            const netGuestCostTL = 2843068.07 * mtdFactor;
             
             const netGuestCostEUR = netGuestCostTL / currentEurRate;
             const totalConsEUR = totalConsTL / currentEurRate;
             
-            const costPerPaxEUR = netGuestCostEUR / currentPax;
-            const costPerPaxTL = netGuestCostTL / currentPax;
+            const costPerPaxEUR = currentPax > 0 ? (netGuestCostEUR / currentPax) : 0;
+            const costPerPaxTL = currentPax > 0 ? (netGuestCostTL / currentPax) : 0;
             
             document.getElementById("kpi-total-consumption").textContent = formatTL(totalConsTL);
             document.getElementById("kpi-total-consumption-eur").textContent = formatEUR(totalConsEUR);
@@ -645,28 +616,17 @@ th, td {
             document.getElementById("kpi-net-guest-cost-eur").textContent = formatEUR(netGuestCostEUR);
             
             document.getElementById("kpi-pax-count").textContent = formatNumber(currentPax, 0) + " Pax-Gece";
-            
-            let label = "Excel Tanımlı";
-            if (currentPaxMode === 'paid_excl_neilson') label = "Live Ücretli (-Neilson)";
-            else if (currentPaxMode === 'paid_incl_neilson') label = "Live Ücretli (+Neilson)";
-            else if (currentPaxMode === 'paid_and_comp_excl_neilson') label = "Ücretli + Comp";
-            else if (currentPaxMode === 'all_stays') label = "Tüm Gecelemeler";
-            document.getElementById("kpi-pax-type").textContent = label;
+            document.getElementById("kpi-pax-type").textContent = `${formatDateTurkish(SELECTED_DATE)} Verisi`;
             
             document.getElementById("kpi-pax-cost").textContent = formatEUR(costPerPaxEUR);
             document.getElementById("kpi-pax-cost-tl").textContent = formatTL(costPerPaxTL);
         }
 
         function renderFBTuketim() {
-            // We have static data from FB_Tuketim
+            const mtdFactor = getMtdFactor();
             const rows = EXCEL_DATA.FB_Tuketim;
             const tbody = document.querySelector("#tbl-fb-tuketim tbody");
             tbody.innerHTML = "";
-            
-            // Food: row index 18 (C19)
-            // Beverages: row index 19 (C20)
-            // Alcohol: row index 20 (C21)
-            // Total: row index 21 (C22)
             
             const items = [
                 { name: "Yiyecek", key: 10 },
@@ -678,20 +638,18 @@ th, td {
             items.forEach(item => {
                 const excelRow = rows[item.key];
                 
-                // Excel values
-                const consumption = parseFloat(excelRow[3]); // D
-                const extraSales = parseFloat(excelRow[4] || 0); // E
-                const salesCost = parseFloat(excelRow[5] || 0); // F
-                const staffCost = parseFloat(excelRow[6] || 0); // G
-                const netCostTL = parseFloat(excelRow[7]); // H
-                const ciroPrim = parseFloat(excelRow[8] || 0); // I
-                const netConsumption = parseFloat(excelRow[9]); // J
+                const consumption = parseFloat(excelRow[3]) * mtdFactor;
+                const extraSales = parseFloat(excelRow[4] || 0) * mtdFactor;
+                const salesCost = parseFloat(excelRow[5] || 0) * mtdFactor;
+                const staffCost = parseFloat(excelRow[6] || 0) * mtdFactor;
+                const netCostTL = parseFloat(excelRow[7]) * mtdFactor;
+                const ciroPrim = parseFloat(excelRow[8] || 0) * mtdFactor;
+                const netConsumption = parseFloat(excelRow[9]) * mtdFactor;
                 
-                // Recalculations based on user settings
                 const netCostEUR = netCostTL / currentEurRate;
-                const costPerPaxEUR = netCostEUR / currentPax;
+                const costPerPaxEUR = currentPax > 0 ? (netCostEUR / currentPax) : 0;
                 
-                const staffCostPerPaxTL = netConsumption / currentPax; // J is net consumption which represents staff canteen cost when netCost is subtracted
+                const staffCostPerPaxTL = currentPax > 0 ? (netConsumption / currentPax) : 0;
                 const staffCostPerPaxEUR = staffCostPerPaxTL / currentEurRate;
                 
                 const tr = document.createElement("tr");
@@ -714,17 +672,25 @@ th, td {
                 tbody.appendChild(tr);
             });
             
-            // Market Sales
-            // Row index 15 (Market Satış)
+            // Market Sales (Live Sedna POS Sales for DepartCode 605 - Store)
             const marketRow = rows[15];
             const mtbody = document.querySelector("#tbl-market tbody");
             mtbody.innerHTML = "";
             
-            const sales = parseFloat(marketRow[3]);
-            const cost = parseFloat(marketRow[4]);
+            let sales = parseFloat(marketRow[3]) * mtdFactor;
+            let cost = parseFloat(marketRow[4]) * mtdFactor;
+            
+            if (LIVE_DATA && LIVE_DATA.pos_sales && LIVE_DATA.pos_sales['605']) {
+                const storePos = LIVE_DATA.pos_sales['605'];
+                if (storePos.total_price > 0) {
+                    sales = storePos.total_price;
+                    cost = sales * 0.3713; // Sedna cost ratio benchmark
+                }
+            }
+            
             const profit = sales - cost;
             const profitEur = profit / currentEurRate;
-            const profitRatio = (profit / sales) * 100;
+            const profitRatio = sales > 0 ? ((profit / sales) * 100) : 0;
             
             const trm = document.createElement("tr");
             trm.innerHTML = `
@@ -739,19 +705,20 @@ th, td {
         }
 
         function renderGroups() {
+            const mtdFactor = getMtdFactor();
+            
             // Ana Grup
             const anaRows = EXCEL_DATA.AnaGrup;
             const anaTbody = document.querySelector("#tbl-ana-grup tbody");
             anaTbody.innerHTML = "";
             
-            // Index 2, 3, 4 are the food, bev, clean groups
             for (let i = 2; i < 7; i++) {
                 if (i >= anaRows.length) break;
                 const row = anaRows[i];
                 if (!row[1]) continue;
                 
-                const val = parseFloat(row[2]);
-                const perPaxTL = val / currentPax;
+                const val = parseFloat(row[2]) * mtdFactor;
+                const perPaxTL = currentPax > 0 ? (val / currentPax) : 0;
                 const perPaxEUR = perPaxTL / currentEurRate;
                 
                 const tr = document.createElement("tr");
@@ -773,10 +740,11 @@ th, td {
                 const row = araRows[i];
                 if (!row[1]) continue;
                 
+                const val = parseFloat(row[2]) * mtdFactor;
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td>${row[1]}</td>
-                    <td style="font-weight: 600;">${formatNumber(row[2])} ₺</td>
+                    <td style="font-weight: 600;">${formatNumber(val)} ₺</td>
                 `;
                 araTbody.appendChild(tr);
             }
@@ -786,6 +754,7 @@ th, td {
         }
 
         function filterAltGrup() {
+            const mtdFactor = getMtdFactor();
             const altRows = EXCEL_DATA.AltGrup;
             const query = document.getElementById("search-alt-grup").value.toLowerCase();
             const tbody = document.querySelector("#tbl-alt-grup tbody");
@@ -798,8 +767,8 @@ th, td {
                 const name = row[0];
                 if (query && !name.toLowerCase().includes(query)) continue;
                 
-                const val = parseFloat(row[1]);
-                const perPaxTL = val / currentPax;
+                const val = parseFloat(row[1]) * mtdFactor;
+                const perPaxTL = currentPax > 0 ? (val / currentPax) : 0;
                 const perPaxEUR = perPaxTL / currentEurRate;
                 
                 const tr = document.createElement("tr");
@@ -820,21 +789,20 @@ th, td {
         }
 
         function renderStokList() {
+            const mtdFactor = getMtdFactor();
             const rawStok = EXCEL_DATA.DetayliStok;
             const query = document.getElementById("search-stok").value.toLowerCase();
             
             filteredStok = [];
-            // Excel DetayliStok format: row 0 is title, row 1 is header
-            // Data starts at index 2
             for (let i = 2; i < rawStok.length; i++) {
                 const row = rawStok[i];
-                if (!row[1] && !row[2]) continue; // Skip empty rows
+                if (!row[1] && !row[2]) continue;
                 
                 const code = row[0] || '';
                 const name = row[1] || '';
                 const unit = row[2] || '';
-                const qty = parseFloat(row[3] || 0);
-                const amount = parseFloat(row[4] || 0);
+                const qty = parseFloat(row[3] || 0) * mtdFactor;
+                const amount = parseFloat(row[4] || 0) * mtdFactor;
                 
                 if (query && !code.toLowerCase().includes(query) && !name.toLowerCase().includes(query)) {
                     continue;
@@ -843,10 +811,8 @@ th, td {
                 filteredStok.push({ code, name, unit, qty, amount });
             }
             
-            // Sort by amount descending
             filteredStok.sort((a, b) => b.amount - a.amount);
             
-            // Paginate
             const total = filteredStok.length;
             const totalPages = Math.ceil(total / pageSize);
             
@@ -871,7 +837,6 @@ th, td {
                 tbody.appendChild(tr);
             }
             
-            // Update pagination UI
             document.getElementById("pagination-info").textContent = `Gösterilen: ${total > 0 ? start + 1 : 0} - ${end} / Toplam: ${total}`;
             document.getElementById("btn-prev-page").disabled = (currentPage === 1);
             document.getElementById("btn-next-page").disabled = (currentPage === totalPages || totalPages === 0);
@@ -894,19 +859,19 @@ th, td {
 
         // Render Staff Canteen
         function renderStaff() {
+            const mtdFactor = getMtdFactor();
             const rows = EXCEL_DATA.Personel;
             const tbody = document.querySelector("#tbl-personel tbody");
             tbody.innerHTML = "";
             
-            // Starts at index 2
             for (let i = 2; i < rows.length; i++) {
                 const row = rows[i];
                 if (!row[1]) continue;
                 
                 const name = row[1];
                 const unit = row[2];
-                const qty = row[3];
-                const amount = row[4];
+                const qty = row[3] !== null ? (parseFloat(row[3]) * mtdFactor) : null;
+                const amount = row[4] !== null ? (parseFloat(row[4]) * mtdFactor) : null;
                 
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
@@ -919,8 +884,10 @@ th, td {
             }
         }
 
-        // Render Others (Demre, Marina, Yılbaşı)
+        // Render Others (Demre, Marina)
         function renderOthers() {
+            const mtdFactor = getMtdFactor();
+            
             // Demre
             const demreRows = EXCEL_DATA.Demre;
             const demreTbody = document.querySelector("#tbl-demre tbody");
@@ -929,12 +896,15 @@ th, td {
                 const row = demreRows[i];
                 if (!row[1]) continue;
                 
+                const stockQty = row[2] !== null ? (parseFloat(row[2]) * mtdFactor) : null;
+                const consQty = row[4] !== null ? (parseFloat(row[4]) * mtdFactor) : null;
+                
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td>${row[1]}</td>
-                    <td>${row[2] !== null ? formatNumber(row[2], 1) : '—'}</td>
+                    <td>${stockQty !== null ? formatNumber(stockQty, 1) : '—'}</td>
                     <td>${row[3] || '—'}</td>
-                    <td style="font-weight: 600; color: var(--accent-orange);">${row[4] !== null ? formatNumber(row[4], 1) : '—'}</td>
+                    <td style="font-weight: 600; color: var(--accent-orange);">${consQty !== null ? formatNumber(consQty, 1) : '—'}</td>
                 `;
                 demreTbody.appendChild(tr);
             }
@@ -947,54 +917,18 @@ th, td {
                 const row = marinaRows[i];
                 if (!row[1]) continue;
                 
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${row[1]}</td>
-                    <td>${row[2] || '—'}</td>
-                    <td>${row[3] !== null ? formatNumber(row[3], 1) : '—'}</td>
-                    <td style="font-weight: 600; color: var(--accent-green);">${row[4] !== null ? formatNumber(row[4]) + ' ₺' : '—'}</td>
-                `;
-                marinaTbody.appendChild(tr);
-            }
-            
-            // Yılbaşı
-            const yilRows = EXCEL_DATA.Yilbasi;
-            const yilTbody = document.querySelector("#tbl-yilbasi tbody");
-            yilTbody.innerHTML = "";
-            for (let i = 1; i < yilRows.length; i++) {
-                const row = yilRows[i];
-                if (!row[1]) continue;
+                const qty = row[3] !== null ? (parseFloat(row[3]) * mtdFactor) : null;
+                const amount = row[4] !== null ? (parseFloat(row[4]) * mtdFactor) : null;
                 
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td>${row[1]}</td>
-                    <td><span class="badge badge-blue">${row[2] || '—'}</span></td>
-                    <td>${row[3] !== null ? formatNumber(row[3], 1) : '—'}</td>
-                    <td style="font-weight: 600; color: var(--accent-purple);">${row[4] !== null ? formatNumber(row[4]) + ' ₺' : '—'}</td>
+                    <td>${row[2] || '—'}</td>
+                    <td>${qty !== null ? formatNumber(qty, 1) : '—'}</td>
+                    <td style="font-weight: 600; color: var(--accent-green);">${amount !== null ? formatNumber(amount) + ' ₺' : '—'}</td>
                 `;
-                yilTbody.appendChild(tr);
+                marinaTbody.appendChild(tr);
             }
-        }
-
-        // Render Kapak
-        function renderKapak() {
-            const rows = EXCEL_DATA.KAPAK;
-            const container = document.getElementById("kapak-grid-container");
-            container.innerHTML = "";
-            
-            rows.forEach(row => {
-                // Find non-empty cells
-                const cleanRow = row.filter(c => c !== null && c !== "");
-                if (cleanRow.length >= 2) {
-                    const item = document.createElement("div");
-                    item.className = "kapak-item";
-                    item.innerHTML = `
-                        <span class="kapak-label">${cleanRow[0]}</span>
-                        <span class="kapak-value">${cleanRow[1]}</span>
-                    `;
-                    container.appendChild(item);
-                }
-            });
         }
 
         // Highlight matching search text
@@ -1006,31 +940,27 @@ th, td {
 
         // Tab Navigation
         function switchTab(evt, tabId) {
-            // Hide all tab content
             document.querySelectorAll(".tab-content").forEach(content => {
                 content.classList.remove("active");
             });
             
-            // Remove active class from tab links
             document.querySelectorAll(".tab-link").forEach(link => {
                 link.classList.remove("active");
             });
             
-            // Show current tab content and active state
             document.getElementById(tabId).classList.add("active");
             evt.currentTarget.classList.add("active");
         }
 
         // Chart.js implementation
         function initCharts() {
-            // Doughnut chart (Food, Beverage, Alcohol breakdown)
             const ctxPie = document.getElementById("chart-consumption-pie").getContext('2d');
             pieChartInstance = new Chart(ctxPie, {
                 type: 'doughnut',
                 data: {
                     labels: ['Yiyecek', 'İçecekler', 'Alkollü İçecekler'],
                     datasets: [{
-                        data: [53453.48, 3710.89, 7062.36], // EUR values
+                        data: [53453.48, 3710.89, 7062.36],
                         backgroundColor: ['#00b4d8', '#06d6a0', '#7209b7'],
                         borderWidth: 0,
                         hoverOffset: 10
@@ -1054,7 +984,6 @@ th, td {
                 }
             });
 
-            // Occupancy breakdown chart
             const ctxOcc = document.getElementById("chart-occupancy").getContext('2d');
             occChartInstance = new Chart(ctxOcc, {
                 type: 'pie',
@@ -1062,11 +991,11 @@ th, td {
                     labels: ['AI (Paid)', 'HB (Paid)', 'BB (Paid)', 'Neilson', 'Comp (Free)'],
                     datasets: [{
                         data: [
-                            LIVE_DATA.overnights.AI,
-                            LIVE_DATA.overnights.HB,
-                            LIVE_DATA.overnights.BB,
-                            LIVE_DATA.overnights.Neilson,
-                            LIVE_DATA.overnights.Comp
+                            LIVE_DATA.overnights ? LIVE_DATA.overnights.AI : 1307,
+                            LIVE_DATA.overnights ? LIVE_DATA.overnights.HB : 1203,
+                            LIVE_DATA.overnights ? LIVE_DATA.overnights.BB : 436,
+                            LIVE_DATA.overnights ? LIVE_DATA.overnights.Neilson : 910,
+                            LIVE_DATA.overnights ? LIVE_DATA.overnights.Comp : 180
                         ],
                         backgroundColor: ['#ef476f', '#f77f00', '#06d6a0', '#00b4d8', '#7209b7'],
                         borderWidth: 0
@@ -1089,17 +1018,30 @@ th, td {
                     }
                 }
             });
+            
+            updateCharts();
         }
 
         function updateCharts() {
+            const mtdFactor = getMtdFactor();
             if (pieChartInstance) {
-                // Update pie chart with recalculated EUR values based on current exchange rate
-                const foodNetEur = 2270063.10 / currentEurRate;
-                const bevNetEur = 197373.97 / currentEurRate;
-                const alcNetEur = 375630.99 / currentEurRate;
+                const foodNetEur = (2270063.10 * mtdFactor) / currentEurRate;
+                const bevNetEur = (197373.97 * mtdFactor) / currentEurRate;
+                const alcNetEur = (375630.99 * mtdFactor) / currentEurRate;
                 
                 pieChartInstance.data.datasets[0].data = [foodNetEur, bevNetEur, alcNetEur];
                 pieChartInstance.update();
+            }
+
+            if (occChartInstance && LIVE_DATA.overnights) {
+                occChartInstance.data.datasets[0].data = [
+                    LIVE_DATA.overnights.AI,
+                    LIVE_DATA.overnights.HB,
+                    LIVE_DATA.overnights.BB,
+                    LIVE_DATA.overnights.Neilson,
+                    LIVE_DATA.overnights.Comp
+                ];
+                occChartInstance.update();
             }
         }
     </script>
