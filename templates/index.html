@@ -109,6 +109,520 @@
     .kpi-header-badge .badge-val-orange { color: var(--accent-orange); font-weight: 800; }
 
     /* Desktop Specific Layout Rules */
+    @media (min-width: 1101px) {
+        .dashboard-grid {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) 350px !important;
+            gap: 24px !important;
+        }
+
+        #tab-gruplar .dashboard-grid {
+            grid-template-columns: minmax(0, 1.1fr) minmax(450px, 1fr) !important;
+        }
+
+        .yonetim-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 24px !important;
+        }
+
+        /* #tab-yonetim Desktop Rules (Fit 100% without scrollbar) */
+        #tab-yonetim div.table-container {
+            overflow-x: hidden !important;
+            max-width: 100% !important;
+            width: 100% !important;
+        }
+
+        #tab-yonetim table {
+            min-width: 0 !important;
+            width: 100% !important;
+            table-layout: fixed !important;
+            white-space: normal !important;
+        }
+
+        #tab-yonetim th, #tab-yonetim td {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            padding: 6px 4px !important;
+            font-size: 11px !important;
+        }
+
+        #tbl-top10 th:nth-child(1), #tbl-top10 td:nth-child(1) { width: 16% !important; }
+        #tbl-top10 th:nth-child(2), #tbl-top10 td:nth-child(2) { width: 36% !important; }
+        #tbl-top10 th:nth-child(3), #tbl-top10 td:nth-child(3) { width: 18% !important; }
+        #tbl-top10 th:nth-child(4), #tbl-top10 td:nth-child(4) { width: 18% !important; }
+        #tbl-top10 th:nth-child(5), #tbl-top10 td:nth-child(5) { width: 12% !important; }
+
+        #tbl-depot-breakdown th:nth-child(1), #tbl-depot-breakdown td:nth-child(1) { width: 12% !important; }
+        #tbl-depot-breakdown th:nth-child(2), #tbl-depot-breakdown td:nth-child(2) { width: 34% !important; }
+        #tbl-depot-breakdown th:nth-child(3), #tbl-depot-breakdown td:nth-child(3) { width: 38% !important; }
+        #tbl-depot-breakdown th:nth-child(4), #tbl-depot-breakdown td:nth-child(4) { width: 16% !important; }
+
+        #tbl-zayi th:nth-child(1), #tbl-zayi td:nth-child(1) { width: 40% !important; }
+        #tbl-zayi th:nth-child(2), #tbl-zayi td:nth-child(2) { width: 15% !important; }
+        #tbl-zayi th:nth-child(3), #tbl-zayi td:nth-child(3) { width: 20% !important; }
+        #tbl-zayi th:nth-child(4), #tbl-zayi td:nth-child(4) { width: 25% !important; }
+    }
+
+    /* Mobile Specific Optimization (Apple iPhone & Samsung Devices) */
+    @media (max-width: 1100px) {
+        .dashboard-grid, 
+        #tab-gruplar .dashboard-grid,
+        .yonetim-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+        }
+
+        #tab-yonetim .table-container,
+        .table-container {
+            width: 100% !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            touch-action: pan-x pan-y !important;
+            display: block !important;
+        }
+
+        #tab-yonetim table,
+        #tbl-top10,
+        #tbl-depot-breakdown,
+        #tbl-zayi {
+            min-width: 650px !important;
+            width: 650px !important;
+            table-layout: auto !important;
+            white-space: nowrap !important;
+        }
+
+        #tab-yonetim th, 
+        #tab-yonetim td,
+        #tbl-top10 th, #tbl-top10 td,
+        #tbl-depot-breakdown th, #tbl-depot-breakdown td,
+        #tbl-zayi th, #tbl-zayi td {
+            width: auto !important;
+            min-width: 80px !important;
+            white-space: nowrap !important;
+            padding: 8px 12px !important;
+            font-size: 12px !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .app-container {
+            padding: 10px !important;
+            gap: 12px !important;
+        }
+
+        header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+            padding: 12px !important;
+        }
+
+        .brand-section {
+            gap: 10px !important;
+            align-items: center !important;
+        }
+
+        .logo-icon {
+            width: 40px !important;
+            height: 40px !important;
+            font-size: 15px !important;
+            flex-shrink: 0 !important;
+        }
+
+        .title-area {
+            flex: 1 !important;
+            min-width: 0 !important;
+        }
+
+        .title-area h1 {
+            font-size: 15px !important;
+            line-height: 1.25 !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
+
+        .title-area p {
+            font-size: 11px !important;
+            margin-top: 2px !important;
+        }
+
+        .control-panel {
+            width: 100% !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            padding-top: 10px !important;
+            border-top: 1px solid var(--border-color) !important;
+        }
+
+        .date-selector-trigger {
+            padding: 6px 10px !important;
+            font-size: 12px !important;
+        }
+
+        /* Mobile Nav Buttons: 2 Column Grid for clean touch targets */
+        nav {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+            padding: 8px !important;
+            overflow-x: hidden !important;
+            white-space: normal !important;
+        }
+
+        .tab-link {
+            width: 100% !important;
+            justify-content: center !important;
+            text-align: center !important;
+            padding: 10px 6px !important;
+            font-size: 12px !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            border-radius: 8px !important;
+            min-height: 44px !important;
+        }
+
+        /* KPI Cards: Single column stack on mobile */
+        .kpi-row {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+        }
+
+        .kpi-card {
+            padding: 14px 16px !important;
+        }
+
+        .kpi-value {
+            font-size: 1.4rem !important;
+        }
+
+        /* Tables on Mobile: Guaranteed 650px width for smooth touch slide */
+        .table-container {
+            width: 100% !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            touch-action: pan-x pan-y !important;
+            display: block !important;
+        }
+
+        .table-container table {
+            min-width: 650px !important;
+            width: 650px !important;
+            table-layout: auto !important;
+            white-space: nowrap !important;
+        }
+
+        .table-container th, 
+        .table-container td {
+            width: auto !important;
+            padding: 8px 10px !important;
+            font-size: 12px !important;
+            white-space: nowrap !important;
+        }
+    }</style>
+
+    <style>
+    /* Clean & Universal Mobile & Responsive Optimization */
+    html, body {
+        overflow-x: hidden !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0;
+        padding: 0;
+    }
+
+    .app-container {
+        width: 100% !important;
+        max-width: 1600px !important;
+        margin: 0 auto;
+        padding: 24px;
+        box-sizing: border-box;
+        overflow-x: hidden !important;
+    }
+
+    /* Table Container Styling */
+    .table-container {
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-x pan-y !important;
+    }
+
+    /* KPI Summary Badges in Panel Headers */
+    .kpi-badge-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .kpi-header-badge {
+        background: rgba(0, 180, 216, 0.1);
+        border: 1px solid rgba(0, 180, 216, 0.25);
+        border-radius: 8px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .kpi-header-badge .badge-val { color: var(--accent-green); font-weight: 800; }
+    .kpi-header-badge .badge-val-blue { color: var(--accent-blue); font-weight: 800; }
+    .kpi-header-badge .badge-val-orange { color: var(--accent-orange); font-weight: 800; }
+
+    /* Desktop Specific Layout Rules */
+    @media (min-width: 1101px) {
+        .dashboard-grid {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) 350px !important;
+            gap: 24px !important;
+        }
+
+        #tab-gruplar .dashboard-grid {
+            grid-template-columns: minmax(0, 1.1fr) minmax(450px, 1fr) !important;
+        }
+
+        .yonetim-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 24px !important;
+        }
+
+        /* #tab-yonetim Desktop Rules (Fit 100% without scrollbar) */
+        #tab-yonetim div.table-container {
+            overflow-x: hidden !important;
+            max-width: 100% !important;
+            width: 100% !important;
+        }
+
+        #tab-yonetim table {
+            min-width: 0 !important;
+            width: 100% !important;
+            table-layout: fixed !important;
+            white-space: normal !important;
+        }
+
+        #tab-yonetim th, #tab-yonetim td {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            padding: 6px 4px !important;
+            font-size: 11px !important;
+        }
+
+        #tbl-top10 th:nth-child(1), #tbl-top10 td:nth-child(1) { width: 16% !important; }
+        #tbl-top10 th:nth-child(2), #tbl-top10 td:nth-child(2) { width: 36% !important; }
+        #tbl-top10 th:nth-child(3), #tbl-top10 td:nth-child(3) { width: 18% !important; }
+        #tbl-top10 th:nth-child(4), #tbl-top10 td:nth-child(4) { width: 18% !important; }
+        #tbl-top10 th:nth-child(5), #tbl-top10 td:nth-child(5) { width: 12% !important; }
+
+        #tbl-depot-breakdown th:nth-child(1), #tbl-depot-breakdown td:nth-child(1) { width: 12% !important; }
+        #tbl-depot-breakdown th:nth-child(2), #tbl-depot-breakdown td:nth-child(2) { width: 34% !important; }
+        #tbl-depot-breakdown th:nth-child(3), #tbl-depot-breakdown td:nth-child(3) { width: 38% !important; }
+        #tbl-depot-breakdown th:nth-child(4), #tbl-depot-breakdown td:nth-child(4) { width: 16% !important; }
+
+        #tbl-zayi th:nth-child(1), #tbl-zayi td:nth-child(1) { width: 40% !important; }
+        #tbl-zayi th:nth-child(2), #tbl-zayi td:nth-child(2) { width: 15% !important; }
+        #tbl-zayi th:nth-child(3), #tbl-zayi td:nth-child(3) { width: 20% !important; }
+        #tbl-zayi th:nth-child(4), #tbl-zayi td:nth-child(4) { width: 25% !important; }
+    }
+
+    /* Mobile Specific Optimization (Apple iPhone & Samsung Devices) */
+    @media (max-width: 1100px) {
+        .dashboard-grid, 
+        #tab-gruplar .dashboard-grid,
+        .yonetim-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+        }
+
+        #tab-yonetim div.table-container {
+            width: 100% !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            touch-action: pan-x pan-y !important;
+        }
+
+        #tab-yonetim table {
+            min-width: 650px !important;
+            width: max-content !important;
+            table-layout: auto !important;
+            white-space: nowrap !important;
+        }
+
+        #tab-yonetim th, 
+        #tab-yonetim td {
+            white-space: nowrap !important;
+            padding: 8px 10px !important;
+            font-size: 12px !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .app-container {
+            padding: 12px !important;
+            gap: 14px !important;
+        }
+
+        header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 12px !important;
+            padding: 14px !important;
+        }
+
+        .brand-section {
+            gap: 12px !important;
+            align-items: center !important;
+        }
+
+        .logo-icon {
+            width: 42px !important;
+            height: 42px !important;
+            font-size: 16px !important;
+            flex-shrink: 0 !important;
+        }
+
+        .title-area {
+            flex: 1 !important;
+            min-width: 0 !important;
+        }
+
+        .title-area h1 {
+            font-size: 16px !important;
+            line-height: 1.25 !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
+
+        .title-area p {
+            font-size: 11px !important;
+            margin-top: 2px !important;
+        }
+
+        .control-panel {
+            width: 100% !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            padding-top: 10px !important;
+            border-top: 1px solid var(--border-color) !important;
+        }
+
+        .date-selector-trigger {
+            padding: 6px 12px !important;
+            font-size: 12px !important;
+        }
+
+        /* Mobile Nav Buttons: 2 Column Grid for clean touch targets */
+        nav {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+            padding: 8px !important;
+            overflow-x: hidden !important;
+            white-space: normal !important;
+        }
+
+        .tab-link {
+            width: 100% !important;
+            justify-content: center !important;
+            text-align: center !important;
+            padding: 10px 6px !important;
+            font-size: 12px !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            border-radius: 8px !important;
+            min-height: 44px !important;
+        }
+
+        /* KPI Cards: Single column stack on mobile */
+        .kpi-row {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+        }
+
+        .kpi-card {
+            padding: 14px 16px !important;
+        }
+
+        .kpi-value {
+            font-size: 1.4rem !important;
+        }
+
+        /* Tables on Mobile: Enable horizontal touch slide for wide content */
+        .table-container table {
+            min-width: 650px !important;
+            white-space: nowrap !important;
+        }
+
+        .table-container th, 
+        .table-container td {
+            padding: 8px 10px !important;
+            font-size: 12px !important;
+        }
+    }</style>
+
+    <style>
+    /* Clean & Universal Mobile & Responsive Optimization */
+    html, body {
+        overflow-x: hidden !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0;
+        padding: 0;
+    }
+
+    .app-container {
+        width: 100% !important;
+        max-width: 1600px !important;
+        margin: 0 auto;
+        padding: 24px;
+        box-sizing: border-box;
+        overflow-x: hidden !important;
+    }
+
+    /* Table Container Styling */
+    .table-container {
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-x pan-y !important;
+    }
+
+    /* KPI Summary Badges in Panel Headers */
+    .kpi-badge-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .kpi-header-badge {
+        background: rgba(0, 180, 216, 0.1);
+        border: 1px solid rgba(0, 180, 216, 0.25);
+        border-radius: 8px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .kpi-header-badge .badge-val { color: var(--accent-green); font-weight: 800; }
+    .kpi-header-badge .badge-val-blue { color: var(--accent-blue); font-weight: 800; }
+    .kpi-header-badge .badge-val-orange { color: var(--accent-orange); font-weight: 800; }
+
+    /* Desktop Specific Layout Rules */
     @media (min-width: 769px) {
         .dashboard-grid {
             display: grid !important;
@@ -640,7 +1154,7 @@
             </div>
 
             <!-- Executive 2x2 Grid -->
-            <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr !important;">
+            <div class="dashboard-grid yonetim-grid">
                 <!-- Panel 1: Top 10 High Cost Items -->
                 <div class="panel">
                     <div class="panel-header">
