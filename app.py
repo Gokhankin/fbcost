@@ -39,7 +39,13 @@ FALLBACK_DATA = {
             "total": 2381882.18
         },
         "detayli_stok": [],
-        "personel_stok": []
+        "personel_stok": [],
+        "fb_analytics": {
+            "top10_items": [],
+            "depot_breakdown": [],
+            "zayi_items": [],
+            "total_zayi_amount": 0.0
+        }
     }
 }
 
@@ -201,6 +207,107 @@ def fetch_live_stock_data(start_str, end_str):
                 "amount": float(r[4] or 0)
             } for r in staff_rows
         ]
+
+        # 4. F&B Manager Executive Analytics (Top 10, Depot Breakdown, Zayi/Scrap Type 25)
+        # 4a. Top 10 High Cost Items
+        q_top10 = """
+            SELECT TOP 10
+                p.ProductCode,
+                p.Remark AS ProductName,
+                p.Unit,
+                SUM(ISNULL(st.Quantity, 0)) AS TotalQty,
+                SUM(ISNULL(st.Amount, 0)) AS TotalAmount
+            FROM StockTrans st
+            JOIN StockOwner so ON so.RecId = st.StockOwnerId
+            JOIN Product p ON p.RecId = st.CardId
+            WHERE so.Dates >= CONVERT(DATETIME, ?, 120)
+              AND so.Dates <= CONVERT(DATETIME, ?, 120)
+              AND so.Type = '20'
+            GROUP BY p.ProductCode, p.Remark, p.Unit
+            ORDER BY TotalAmount DESC
+        """
+        cursor.execute(q_top10, (start_str, end_str))
+        top10_items = [
+            {
+                "code": str(r[0] or '').strip(),
+                "name": str(r[1] or '').strip(),
+                "unit": str(r[2] or '').strip(),
+                "qty": float(r[3] or 0),
+                "amount": float(r[4] or 0)
+            } for r in cursor.fetchall()
+        ]
+
+        # 4b. Depot Outlet Breakdown
+        q_depot = """
+            SELECT 
+                st.EntryingDepot,
+                SUM(ISNULL(st.Amount, 0)) AS TotalAmount
+            FROM StockTrans st
+            JOIN StockOwner so ON so.RecId = st.StockOwnerId
+            WHERE so.Dates >= CONVERT(DATETIME, ?, 120)
+              AND so.Dates <= CONVERT(DATETIME, ?, 120)
+              AND so.Type = '20'
+            GROUP BY st.EntryingDepot
+            ORDER BY TotalAmount DESC
+        """
+        cursor.execute(q_depot, (start_str, end_str))
+        depot_names = {
+            "002": "Ana Mutfak",
+            "003": "Ana Bar",
+            "004": "Beach Bar",
+            "005": "Pool Bar",
+            "006": "Captain Cook Bar",
+            "017": "A la Carte Bar",
+            "018": "Night Bar",
+            "021": "Pastane",
+            "024": "Soğuk Mutfak",
+            "026": "Kasaphane",
+            "028": "Bulaşıkhane",
+            "029": "Personel Yemekhane"
+        }
+        depot_breakdown = [
+            {
+                "code": str(r[0] or '').strip(),
+                "name": depot_names.get(str(r[0] or '').strip(), f"Depo {str(r[0] or '').strip()}"),
+                "amount": float(r[1] or 0)
+            } for r in cursor.fetchall()
+        ]
+
+        # 4c. Waste / Scrap Stock Adjustments (Type 25)
+        q_zayi = """
+            SELECT 
+                p.ProductCode,
+                p.Remark AS ProductName,
+                p.Unit,
+                SUM(ISNULL(st.Quantity, 0)) AS TotalQty,
+                SUM(ISNULL(st.Amount, 0)) AS TotalAmount
+            FROM StockTrans st
+            JOIN StockOwner so ON so.RecId = st.StockOwnerId
+            JOIN Product p ON p.RecId = st.CardId
+            WHERE so.Dates >= CONVERT(DATETIME, ?, 120)
+              AND so.Dates <= CONVERT(DATETIME, ?, 120)
+              AND so.Type = '25'
+            GROUP BY p.ProductCode, p.Remark, p.Unit
+            ORDER BY TotalAmount DESC
+        """
+        cursor.execute(q_zayi, (start_str, end_str))
+        zayi_items = [
+            {
+                "code": str(r[0] or '').strip(),
+                "name": str(r[1] or '').strip(),
+                "unit": str(r[2] or '').strip(),
+                "qty": float(r[3] or 0),
+                "amount": float(r[4] or 0)
+            } for r in cursor.fetchall()
+        ]
+        total_zayi_amount = sum(item["amount"] for item in zayi_items)
+
+        stock_payload["fb_analytics"] = {
+            "top10_items": top10_items,
+            "depot_breakdown": depot_breakdown,
+            "zayi_items": zayi_items,
+            "total_zayi_amount": total_zayi_amount
+        }
 
         conn.close()
     except Exception as e:
