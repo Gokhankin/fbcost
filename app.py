@@ -26,7 +26,21 @@ FALLBACK_DATA = {
         "EUR": 53.187703,
         "GBP": 61.456363
     },
-    "pos_sales": {}
+    "pos_sales": {},
+    "stock": {
+        "fb_totals": {
+            "food": 1232214.05,
+            "beverage": 718857.11,
+            "alcohol": 219897.89,
+            "staff": 210913.13,
+            "staff_food": 191854.53,
+            "staff_bev": 7794.78,
+            "staff_alc": 11263.82,
+            "total": 2381882.18
+        },
+        "detayli_stok": [],
+        "personel_stok": []
+    }
 }
 
 def get_db_connection():
@@ -39,6 +53,163 @@ def get_db_connection():
     except Exception as e:
         print(f"Database connection error: {e}")
         return None
+
+def get_stock_db_connection():
+    conn_str = os.getenv("STOCK_DB_CONNECTION_STRING")
+    if conn_str:
+        try:
+            return pyodbc.connect(conn_str, timeout=3)
+        except Exception:
+            pass
+
+    # Try FreeTDS first (works on Linux)
+    freetds_str = "DRIVER=FreeTDS;SERVER=10.0.0.11;PORT=1433;DATABASE=ANTMARINSEDNA2021;UID=sa;PWD=00-0C-29-35-5A-D3;TDS_Version=7.4;"
+    try:
+        return pyodbc.connect(freetds_str, timeout=3)
+    except Exception:
+        pass
+
+    # Fallback to ODBC Driver 18 / 17 (Windows environment)
+    ms_str = "DRIVER={ODBC Driver 18 for SQL Server};SERVER=10.0.0.11,1433;DATABASE=ANTMARINSEDNA2021;UID=sa;PWD=00-0C-29-35-5A-D3;TrustServerCertificate=yes;"
+    try:
+        return pyodbc.connect(ms_str, timeout=3)
+    except Exception as e:
+        print(f"Stock DB connection error: {e}")
+        return None
+
+def fetch_live_stock_data(start_str, end_str):
+    conn = get_stock_db_connection()
+    if not conn:
+        return FALLBACK_DATA["stock"]
+
+    stock_payload = {}
+    try:
+        cursor = conn.cursor()
+        
+        # 1. Total F&B Consumption breakdown by category/depot from Sedna SQL
+        q_categories = """
+            SELECT 
+                st.EntryingDepot,
+                p.MainRecId,
+                SUM(ISNULL(st.Amount, 0)) AS TotalAmount
+            FROM StockTrans st
+            JOIN StockOwner so ON so.RecId = st.StockOwnerId
+            LEFT JOIN Product p ON p.RecId = st.CardId
+            WHERE so.Dates >= CONVERT(DATETIME, ?, 120) 
+              AND so.Dates <= CONVERT(DATETIME, ?, 120)
+              AND so.Type = '20'
+            GROUP BY st.EntryingDepot, p.MainRecId
+        """
+        cursor.execute(q_categories, (start_str, end_str))
+        cat_rows = cursor.fetchall()
+
+        food_total = 0.0
+        bev_total = 0.0
+        alc_total = 0.0
+        staff_total = 0.0
+
+        staff_food = 0.0
+        staff_bev = 0.0
+        staff_alc = 0.0
+
+        for r in cat_rows:
+            depot = (r[0] or '').strip()
+            main_cat = r[1]
+            amt = float(r[2] or 0)
+
+            if depot == '029':
+                staff_total += amt
+                if main_cat == 3:
+                    staff_alc += amt
+                elif main_cat == 2:
+                    staff_bev += amt
+                else:
+                    staff_food += amt
+            elif main_cat == 3: # Alcohol category across all bar depots
+                alc_total += amt
+            elif main_cat == 2: # Beverage category across all bar depots
+                bev_total += amt
+            else: # Food / General warehouse exits
+                food_total += amt
+
+        stock_payload["fb_totals"] = {
+            "food": food_total,
+            "beverage": bev_total,
+            "alcohol": alc_total,
+            "staff": staff_total,
+            "staff_food": staff_food,
+            "staff_bev": staff_bev,
+            "staff_alc": staff_alc,
+            "total": food_total + bev_total + alc_total + staff_total
+        }
+
+        # 2. Detailed Stock Exits (Detaylı Stok Tüketimi)
+        q_detay = """
+            SELECT 
+                p.ProductCode,
+                p.Remark AS ProductName,
+                p.Unit,
+                SUM(ISNULL(st.Quantity, 0)) AS TotalQty,
+                SUM(ISNULL(st.Amount, 0)) AS TotalAmount
+            FROM StockTrans st
+            JOIN StockOwner so ON so.RecId = st.StockOwnerId
+            JOIN Product p ON p.RecId = st.CardId
+            WHERE so.Dates >= CONVERT(DATETIME, ?, 120) 
+              AND so.Dates <= CONVERT(DATETIME, ?, 120)
+              AND so.Type = '20'
+            GROUP BY p.ProductCode, p.Remark, p.Unit
+            ORDER BY TotalAmount DESC
+        """
+        cursor.execute(q_detay, (start_str, end_str))
+        detay_rows = cursor.fetchall()
+        stock_payload["detayli_stok"] = [
+            {
+                "code": str(r[0] or '').strip(),
+                "name": str(r[1] or '').strip(),
+                "unit": str(r[2] or '').strip(),
+                "qty": float(r[3] or 0),
+                "amount": float(r[4] or 0)
+            } for r in detay_rows
+        ]
+
+        # 3. Staff Canteen Items (Personel Yemekhane - Depot 029)
+        q_staff = """
+            SELECT 
+                p.ProductCode,
+                p.Remark AS ProductName,
+                p.Unit,
+                SUM(ISNULL(st.Quantity, 0)) AS TotalQty,
+                SUM(ISNULL(st.Amount, 0)) AS TotalAmount
+            FROM StockTrans st
+            JOIN StockOwner so ON so.RecId = st.StockOwnerId
+            JOIN Product p ON p.RecId = st.CardId
+            WHERE so.Dates >= CONVERT(DATETIME, ?, 120) 
+              AND so.Dates <= CONVERT(DATETIME, ?, 120)
+              AND so.Type = '20'
+              AND st.EntryingDepot = '029'
+            GROUP BY p.ProductCode, p.Remark, p.Unit
+            ORDER BY TotalAmount DESC
+        """
+        cursor.execute(q_staff, (start_str, end_str))
+        staff_rows = cursor.fetchall()
+        stock_payload["personel_stok"] = [
+            {
+                "code": str(r[0] or '').strip(),
+                "name": str(r[1] or '').strip(),
+                "unit": str(r[2] or '').strip(),
+                "qty": float(r[3] or 0),
+                "amount": float(r[4] or 0)
+            } for r in staff_rows
+        ]
+
+        conn.close()
+    except Exception as e:
+        print(f"Error fetching live stock data: {e}")
+        if conn:
+            conn.close()
+        stock_payload = FALLBACK_DATA["stock"]
+
+    return stock_payload
 
 def get_live_data(date_str=None):
     if not date_str:
@@ -60,14 +231,21 @@ def get_live_data(date_str=None):
     iso_start = f"{year:04d}{month:02d}01"
     iso_end = f"{year:04d}{month:02d}{day:02d}"
     
+    start_dt_str = f"{year:04d}-{month:02d}-01 00:00:00"
+    end_dt_str = f"{year:04d}-{month:02d}-{day:02d} 23:59:59"
+
+    # Fetch live stock payload from 10.0.0.11 (ANTMARINSEDNA2021)
+    stock_payload = fetch_live_stock_data(start_dt_str, end_dt_str)
+    
     conn = get_db_connection()
     if not conn:
-        print("Using fallback database values.")
+        print("Using fallback database values for overnights/POS.")
         res = dict(FALLBACK_DATA)
         res["selected_date"] = date_str
         res["day_of_month"] = day
         res["days_in_month"] = days_in_month
         res["mtd_factor"] = mtd_factor
+        res["stock"] = stock_payload
         return res
     
     try:
@@ -181,7 +359,8 @@ def get_live_data(date_str=None):
                 "EUR": eur_rate,
                 "GBP": gbp_rate
             },
-            "pos_sales": pos_sales
+            "pos_sales": pos_sales,
+            "stock": stock_payload
         }
         
     except Exception as e:
@@ -193,6 +372,7 @@ def get_live_data(date_str=None):
         res["day_of_month"] = day
         res["days_in_month"] = days_in_month
         res["mtd_factor"] = mtd_factor
+        res["stock"] = stock_payload
         return res
 
 def load_excel_data():
