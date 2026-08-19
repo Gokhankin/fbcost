@@ -4,9 +4,11 @@ import calendar
 import pyodbc
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request
-from dotenv import load_dotenv
-
-load_dotenv()
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+else:
+    load_dotenv()
 
 app = Flask(__name__)
 
@@ -53,7 +55,7 @@ def get_db_connection():
     db_srv = os.getenv("DB_SERVER", "192.168.0.41,1433")
     db_name = os.getenv("DB_NAME", "SednaAdakoy")
     db_usr = os.getenv("DB_USER", "gokhan")
-    db_pwd = os.getenv("DB_PASS", "")
+    db_pwd = os.getenv("DB_PASS", "Ad!!2025!!")
     conn_str = os.getenv("DB_CONNECTION_STRING") or os.getenv("CONN_STR") or f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={db_srv};DATABASE={db_name};UID={db_usr};PWD={db_pwd};TrustServerCertificate=yes;"
     try:
         conn = pyodbc.connect(conn_str, timeout=3)
@@ -74,7 +76,7 @@ def get_stock_db_connection():
     stk_port = os.getenv("STOCK_DB_PORT", "1433")
     stk_db = os.getenv("STOCK_DB_NAME", "ANTMARINSEDNA2021")
     stk_usr = os.getenv("STOCK_DB_USER", "sa")
-    stk_pwd = os.getenv("STOCK_DB_PASS", "")
+    stk_pwd = os.getenv("STOCK_DB_PASS", "00-0C-29-35-5A-D3")
 
     # Try FreeTDS first (works on Linux)
     freetds_str = f"DRIVER=FreeTDS;SERVER={stk_srv};PORT={stk_port};DATABASE={stk_db};UID={stk_usr};PWD={stk_pwd};TDS_Version=7.4;"
