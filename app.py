@@ -50,9 +50,11 @@ FALLBACK_DATA = {
 }
 
 def get_db_connection():
-    conn_str = os.getenv("DB_CONNECTION_STRING") or os.getenv("CONN_STR") or "DRIVER={ODBC Driver 18 for SQL Server};SERVER=192.168.0.41,1433;DATABASE=SednaAdakoy;UID=gokhan;PWD=Ad!!2025!!;TrustServerCertificate=yes;"
-    if not conn_str:
-        return None
+    db_srv = os.getenv("DB_SERVER", "192.168.0.41,1433")
+    db_name = os.getenv("DB_NAME", "SednaAdakoy")
+    db_usr = os.getenv("DB_USER", "gokhan")
+    db_pwd = os.getenv("DB_PASS", "")
+    conn_str = os.getenv("DB_CONNECTION_STRING") or os.getenv("CONN_STR") or f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={db_srv};DATABASE={db_name};UID={db_usr};PWD={db_pwd};TrustServerCertificate=yes;"
     try:
         conn = pyodbc.connect(conn_str, timeout=3)
         return conn
@@ -68,15 +70,21 @@ def get_stock_db_connection():
         except Exception:
             pass
 
+    stk_srv = os.getenv("STOCK_DB_SERVER", "10.0.0.11")
+    stk_port = os.getenv("STOCK_DB_PORT", "1433")
+    stk_db = os.getenv("STOCK_DB_NAME", "ANTMARINSEDNA2021")
+    stk_usr = os.getenv("STOCK_DB_USER", "sa")
+    stk_pwd = os.getenv("STOCK_DB_PASS", "")
+
     # Try FreeTDS first (works on Linux)
-    freetds_str = "DRIVER=FreeTDS;SERVER=10.0.0.11;PORT=1433;DATABASE=ANTMARINSEDNA2021;UID=sa;PWD=00-0C-29-35-5A-D3;TDS_Version=7.4;"
+    freetds_str = f"DRIVER=FreeTDS;SERVER={stk_srv};PORT={stk_port};DATABASE={stk_db};UID={stk_usr};PWD={stk_pwd};TDS_Version=7.4;"
     try:
         return pyodbc.connect(freetds_str, timeout=3)
     except Exception:
         pass
 
     # Fallback to ODBC Driver 18 / 17 (Windows environment)
-    ms_str = "DRIVER={ODBC Driver 18 for SQL Server};SERVER=10.0.0.11,1433;DATABASE=ANTMARINSEDNA2021;UID=sa;PWD=00-0C-29-35-5A-D3;TrustServerCertificate=yes;"
+    ms_str = f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={stk_srv},{stk_port};DATABASE={stk_db};UID={stk_usr};PWD={stk_pwd};TrustServerCertificate=yes;"
     try:
         return pyodbc.connect(ms_str, timeout=3)
     except Exception as e:
