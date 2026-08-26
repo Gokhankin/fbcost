@@ -597,6 +597,25 @@
         touch-action: pan-x pan-y !important;
     }
 
+    /* Chart Container Styling for Mobile & Desktop Sizing */
+    .chart-container {
+        position: relative !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 260px !important;
+        min-height: 240px !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+
+    .chart-container canvas {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        display: block !important;
+    }
+
     /* KPI Summary Badges in Panel Headers */
     .kpi-badge-container {
         display: flex;
@@ -929,7 +948,7 @@
                         </div>
                         <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
                             <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;" id="occ-chart-title">Oda Gecelemeleri Dağılımı</p>
-                            <div class="chart-container" style="height: 220px;">
+                            <div class="chart-container">
                                 <canvas id="chart-occupancy"></canvas>
                             </div>
                         </div>
@@ -1312,15 +1331,22 @@
         }
 
         // Initialize App
-        document.addEventListener("DOMContentLoaded", function() {
+        function initApp() {
             if (!SELECTED_DATE) {
                 SELECTED_DATE = new Date().toISOString().split('T')[0];
             }
-            document.getElementById("date-picker-input").value = SELECTED_DATE;
+            const datePicker = document.getElementById("date-picker-input");
+            if (datePicker) datePicker.value = SELECTED_DATE;
             updateDateHeaderUI(SELECTED_DATE);
             renderAllData();
             initCharts();
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener("DOMContentLoaded", initApp);
+        } else {
+            initApp();
+        }
 
         function updateDateHeaderUI(dateStr) {
             const formattedDate = formatDateTurkish(dateStr);
@@ -2023,92 +2049,124 @@ function renderOthers() {
 
         // Chart.js implementation
         function initCharts() {
-            const ctxPie = document.getElementById("chart-consumption-pie").getContext('2d');
-            pieChartInstance = new Chart(ctxPie, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Yiyecek', 'İçecekler', 'Alkollü İçecekler'],
-                    datasets: [{
-                        data: [53453.48, 3710.89, 7062.36],
-                        backgroundColor: ['#00b4d8', '#06d6a0', '#7209b7'],
-                        borderWidth: 0,
-                        hoverOffset: 10
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: '#f8fafc',
-                                font: {
-                                    family: 'Plus Jakarta Sans',
-                                    weight: 'bold'
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+            if (typeof Chart === 'undefined') {
+                setTimeout(initCharts, 150);
+                return;
+            }
 
-            const ctxOcc = document.getElementById("chart-occupancy").getContext('2d');
-            occChartInstance = new Chart(ctxOcc, {
-                type: 'pie',
-                data: {
-                    labels: ['AI (Paid)', 'HB (Paid)', 'BB (Paid)', 'Neilson', 'Comp (Free)'],
-                    datasets: [{
-                        data: [
-                            LIVE_DATA.overnights ? LIVE_DATA.overnights.AI : 1307,
-                            LIVE_DATA.overnights ? LIVE_DATA.overnights.HB : 1203,
-                            LIVE_DATA.overnights ? LIVE_DATA.overnights.BB : 436,
-                            LIVE_DATA.overnights ? LIVE_DATA.overnights.Neilson : 910,
-                            LIVE_DATA.overnights ? LIVE_DATA.overnights.Comp : 180
-                        ],
-                        backgroundColor: ['#ef476f', '#f77f00', '#06d6a0', '#00b4d8', '#7209b7'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: {
-                                color: '#f8fafc',
-                                font: {
-                                    family: 'Plus Jakarta Sans',
-                                    size: 11
+            if (pieChartInstance) {
+                try { pieChartInstance.destroy(); } catch(e){}
+                pieChartInstance = null;
+            }
+            if (occChartInstance) {
+                try { occChartInstance.destroy(); } catch(e){}
+                occChartInstance = null;
+            }
+
+            const isMobile = window.innerWidth <= 768;
+
+            const elemPie = document.getElementById("chart-consumption-pie");
+            if (elemPie) {
+                const ctxPie = elemPie.getContext('2d');
+                pieChartInstance = new Chart(ctxPie, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Yiyecek', 'İçecekler', 'Alkollü İçecekler'],
+                        datasets: [{
+                            data: [53453.48, 3710.89, 7062.36],
+                            backgroundColor: ['#00b4d8', '#06d6a0', '#7209b7'],
+                            borderWidth: 0,
+                            hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: '#f8fafc',
+                                    font: {
+                                        family: 'Plus Jakarta Sans',
+                                        size: isMobile ? 10 : 11,
+                                        weight: 'bold'
+                                    },
+                                    boxWidth: isMobile ? 12 : 16
                                 }
                             }
                         }
                     }
-                }
-            });
+                });
+            }
+
+            const elemOcc = document.getElementById("chart-occupancy");
+            if (elemOcc) {
+                const ctxOcc = elemOcc.getContext('2d');
+                occChartInstance = new Chart(ctxOcc, {
+                    type: 'pie',
+                    data: {
+                        labels: ['AI (Paid)', 'HB (Paid)', 'BB (Paid)', 'Neilson', 'Comp (Free)'],
+                        datasets: [{
+                            data: [
+                                (LIVE_DATA && LIVE_DATA.overnights) ? LIVE_DATA.overnights.AI : 1307,
+                                (LIVE_DATA && LIVE_DATA.overnights) ? LIVE_DATA.overnights.HB : 1203,
+                                (LIVE_DATA && LIVE_DATA.overnights) ? LIVE_DATA.overnights.BB : 436,
+                                (LIVE_DATA && LIVE_DATA.overnights) ? LIVE_DATA.overnights.Neilson : 910,
+                                (LIVE_DATA && LIVE_DATA.overnights) ? LIVE_DATA.overnights.Comp : 180
+                            ],
+                            backgroundColor: ['#ef476f', '#f77f00', '#06d6a0', '#00b4d8', '#7209b7'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: isMobile ? 'bottom' : 'right',
+                                labels: {
+                                    color: '#f8fafc',
+                                    font: {
+                                        family: 'Plus Jakarta Sans',
+                                        size: isMobile ? 10 : 11
+                                    },
+                                    boxWidth: isMobile ? 12 : 16
+                                }
+                            }
+                        }
+                    }
+                });
+            }
             
             updateCharts();
         }
 
+        window.addEventListener('resize', function() {
+            if (pieChartInstance) pieChartInstance.resize();
+            if (occChartInstance) occChartInstance.resize();
+        });
+
         function updateCharts() {
             const mtdFactor = getMtdFactor();
+            const eurRate = (typeof currentEurRate !== 'undefined' && currentEurRate > 0) ? currentEurRate : 53.1877;
+            
             if (pieChartInstance) {
-                const foodNetEur = (2270063.10 * mtdFactor) / currentEurRate;
-                const bevNetEur = (197373.97 * mtdFactor) / currentEurRate;
-                const alcNetEur = (375630.99 * mtdFactor) / currentEurRate;
+                const foodNetEur = (2270063.10 * mtdFactor) / eurRate;
+                const bevNetEur = (197373.97 * mtdFactor) / eurRate;
+                const alcNetEur = (375630.99 * mtdFactor) / eurRate;
                 
                 pieChartInstance.data.datasets[0].data = [foodNetEur, bevNetEur, alcNetEur];
                 pieChartInstance.update();
             }
 
-            if (occChartInstance && LIVE_DATA.overnights) {
+            if (occChartInstance && typeof LIVE_DATA !== 'undefined' && LIVE_DATA && LIVE_DATA.overnights) {
                 occChartInstance.data.datasets[0].data = [
-                    LIVE_DATA.overnights.AI,
-                    LIVE_DATA.overnights.HB,
-                    LIVE_DATA.overnights.BB,
-                    LIVE_DATA.overnights.Neilson,
-                    LIVE_DATA.overnights.Comp
+                    LIVE_DATA.overnights.AI || 0,
+                    LIVE_DATA.overnights.HB || 0,
+                    LIVE_DATA.overnights.BB || 0,
+                    LIVE_DATA.overnights.Neilson || 0,
+                    LIVE_DATA.overnights.Comp || 0
                 ];
                 occChartInstance.update();
             }
