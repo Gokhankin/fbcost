@@ -15,31 +15,31 @@ app = Flask(__name__)
 
 FALLBACK_DATA = {
     "overnights": {
-        "AI": 1307,
-        "HB": 1203,
-        "BB": 436,
-        "Neilson": 910,
-        "Comp": 180,
-        "Paid_excl_Neilson": 2946,
-        "Paid_incl_Neilson": 3856,
-        "Paid_and_Comp_excl_Neilson": 3126,
-        "All_Stays": 4036
+        "AI": 1821,
+        "HB": 1266,
+        "BB": 1189,
+        "Neilson": 1513,
+        "Comp": 150,
+        "Paid_excl_Neilson": 4276,
+        "Paid_incl_Neilson": 4276,
+        "Paid_and_Comp_excl_Neilson": 4426,
+        "All_Stays": 4426
     },
     "exchange_rates": {
-        "EUR": 53.187703,
-        "GBP": 61.456363
+        "EUR": 55.304152,
+        "GBP": 64.125000
     },
     "pos_sales": {},
     "stock": {
         "fb_totals": {
-            "food": 1232214.05,
-            "beverage": 718857.11,
-            "alcohol": 219897.89,
-            "staff": 210913.13,
-            "staff_food": 191854.53,
-            "staff_bev": 7794.78,
-            "staff_alc": 11263.82,
-            "total": 2381882.18
+            "food": 4423733.71,
+            "beverage": 504342.43,
+            "alcohol": 1018869.18,
+            "staff": 538913.91,
+            "staff_food": 533101.04,
+            "staff_bev": 5812.87,
+            "staff_alc": 0.0,
+            "total": 5946945.32
         },
         "detayli_stok": [],
         "personel_stok": [],
@@ -385,16 +385,16 @@ def get_live_data(date_str=None):
         cursor.execute(query_overnights, (iso_start, iso_end))
         rows = cursor.fetchall()
         
-        ai = sum(r.pax_nights for r in rows if r.AgencyCode != 'COMP' and 'NEILSON' not in (r.AgencyCode or '').upper() and r.Board == 'AI')
-        hb = sum(r.pax_nights for r in rows if r.AgencyCode != 'COMP' and 'NEILSON' not in (r.AgencyCode or '').upper() and r.Board == 'HB')
-        bb = sum(r.pax_nights for r in rows if r.AgencyCode != 'COMP' and 'NEILSON' not in (r.AgencyCode or '').upper() and r.Board == 'BB')
-        neilson = sum(r.pax_nights for r in rows if 'NEILSON' in (r.AgencyCode or '').upper() and r.Board == 'BB')
+        ai = sum(r.pax_nights for r in rows if r.AgencyCode != 'COMP' and r.Board == 'AI')
+        hb = sum(r.pax_nights for r in rows if r.AgencyCode != 'COMP' and r.Board == 'HB')
+        bb = sum(r.pax_nights for r in rows if r.AgencyCode != 'COMP' and r.Board == 'BB')
+        neilson = sum(r.pax_nights for r in rows if 'NEILSON' in (r.AgencyCode or '').upper())
         comp = sum(r.pax_nights for r in rows if r.AgencyCode == 'COMP')
         
         paid_excl_neilson = ai + hb + bb
-        paid_incl_neilson = paid_excl_neilson + neilson
+        paid_incl_neilson = paid_excl_neilson
         paid_and_comp_excl_neilson = paid_excl_neilson + comp
-        all_stays = paid_incl_neilson + comp
+        all_stays = paid_and_comp_excl_neilson
         
         if paid_excl_neilson == 0:
             paid_excl_neilson = int(FALLBACK_DATA["overnights"]["Paid_excl_Neilson"] * mtd_factor)
@@ -408,26 +408,24 @@ def get_live_data(date_str=None):
             comp = int(FALLBACK_DATA["overnights"]["Comp"] * mtd_factor)
 
         query_eur = """
-            SELECT TOP 1 
-                ISNULL(NULLIF(Invoice, 0), ISNULL(NULLIF(Pos, 0), Buying)) as eur_rate
+            SELECT AVG(ISNULL(NULLIF(Invoice, 0), ISNULL(NULLIF(Pos, 0), Buying))) as eur_rate
             FROM ExchangeRate
             WHERE CurrencyCode = 'EUR'
+              AND CurrDate >= CONVERT(DATETIME, ?, 112)
               AND CurrDate <= CONVERT(DATETIME, ?, 112) + ' 23:59:59'
-            ORDER BY CurrDate DESC
         """
-        cursor.execute(query_eur, (iso_end,))
+        cursor.execute(query_eur, (iso_start, iso_end))
         row_eur = cursor.fetchone()
         eur_rate = float(row_eur[0]) if row_eur and row_eur[0] else FALLBACK_DATA["exchange_rates"]["EUR"]
         
         query_gbp = """
-            SELECT TOP 1
-                ISNULL(NULLIF(Invoice, 0), ISNULL(NULLIF(Pos, 0), Buying)) as gbp_rate
+            SELECT AVG(ISNULL(NULLIF(Invoice, 0), ISNULL(NULLIF(Pos, 0), Buying))) as gbp_rate
             FROM ExchangeRate
             WHERE CurrencyCode = 'GBP'
+              AND CurrDate >= CONVERT(DATETIME, ?, 112)
               AND CurrDate <= CONVERT(DATETIME, ?, 112) + ' 23:59:59'
-            ORDER BY CurrDate DESC
         """
-        cursor.execute(query_gbp, (iso_end,))
+        cursor.execute(query_gbp, (iso_start, iso_end))
         row_gbp = cursor.fetchone()
         gbp_rate = float(row_gbp[0]) if row_gbp and row_gbp[0] else FALLBACK_DATA["exchange_rates"]["GBP"]
         
