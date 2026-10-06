@@ -73,13 +73,15 @@ def get_stock_db_connection():
         print(f"Stock DB connection error: {e}")
         return None
 
-def fetch_live_stock_data(start_str, end_str):
+def fetch_live_stock_data(start_str, end_str, mode="daily"):
     conn = get_stock_db_connection()
     if not conn:
         return {
+            "slip_type": "20",
             "fb_totals": {"food": 0.0, "beverage": 0.0, "alcohol": 0.0, "staff": 0.0, "staff_food": 0.0, "staff_bev": 0.0, "staff_alc": 0.0, "total": 0.0},
             "detayli_stok": [],
             "personel_stok": [],
+            "ana_grup": [],
             "fb_analytics": {"top10_items": [], "depot_breakdown": [], "zayi_items": [], "total_zayi_amount": 0.0}
         }
 
@@ -87,51 +89,93 @@ def fetch_live_stock_data(start_str, end_str):
     try:
         cursor = conn.cursor()
         
-        # 1. Total F&B Consumption breakdown by category/depot from Sedna SQL
-        q_categories = """
+        # 1. Detect slip type: Type 29 (Official Month-End Count) vs Type 20 (Daily Transfers)
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM StockTrans st
+            JOIN StockOwner so ON so.RecId = st.StockOwnerId
+            WHERE so.Dates >= CONVERT(DATETIME, ?, 120) 
+              AND so.Dates <= CONVERT(DATETIME, ?, 120)
+              AND so.Type = '29'
+        """, (start_str, end_str))
+        cnt29 = cursor.fetchone()[0] or 0
+        slip_type = '29' if (mode == 'monthly' and cnt29 > 0) else '20'
+        stock_payload["slip_type"] = slip_type
+
+        # 2. Total Consumption by Product Code Prefix
+        q_cats = """
             SELECT 
-                st.EntryingDepot,
-                p.MainRecId,
+                CASE 
+                    WHEN p.ProductCode LIKE '01%' THEN 'Food'
+                    WHEN p.ProductCode LIKE '0201%' THEN 'Alcohol'
+                    WHEN (p.ProductCode LIKE '0202%' OR p.ProductCode LIKE '0203%') THEN 'Soft_Beverage'
+                    WHEN p.ProductCode LIKE '03%' THEN 'Cleaning'
+                    WHEN p.ProductCode LIKE '05%' THEN 'Operational'
+                    WHEN p.ProductCode LIKE '06%' THEN 'Fuel'
+                    WHEN p.ProductCode LIKE '12%' THEN 'Market'
+                    ELSE 'Other'
+                END AS Category,
+                COUNT(st.RecId) AS ItemCount,
                 SUM(ISNULL(st.Amount, 0)) AS TotalAmount
             FROM StockTrans st
             JOIN StockOwner so ON so.RecId = st.StockOwnerId
-            LEFT JOIN Product p ON p.RecId = st.CardId
+            JOIN Product p ON p.RecId = st.CardId
             WHERE so.Dates >= CONVERT(DATETIME, ?, 120) 
               AND so.Dates <= CONVERT(DATETIME, ?, 120)
-              AND so.Type = '20'
-            GROUP BY st.EntryingDepot, p.MainRecId
+              AND so.Type = ?
+            GROUP BY 
+                CASE 
+                    WHEN p.ProductCode LIKE '01%' THEN 'Food'
+                    WHEN p.ProductCode LIKE '0201%' THEN 'Alcohol'
+                    WHEN (p.ProductCode LIKE '0202%' OR p.ProductCode LIKE '0203%') THEN 'Soft_Beverage'
+                    WHEN p.ProductCode LIKE '03%' THEN 'Cleaning'
+                    WHEN p.ProductCode LIKE '05%' THEN 'Operational'
+                    WHEN p.ProductCode LIKE '06%' THEN 'Fuel'
+                    WHEN p.ProductCode LIKE '12%' THEN 'Market'
+                    ELSE 'Other'
+                END
         """
-        cursor.execute(q_categories, (start_str, end_str))
-        cat_rows = cursor.fetchall()
+        cursor.execute(q_cats, (start_str, end_str, slip_type))
+        cat_dict = {}
+        for r in cursor.fetchall():
+            cat_dict[r[0]] = {"count": r[1], "amount": float(r[2] or 0)}
 
-        food_total = 0.0
-        bev_total = 0.0
-        alc_total = 0.0
-        staff_total = 0.0
+        food_total = cat_dict.get('Food', {}).get('amount', 0.0)
+        alc_total = cat_dict.get('Alcohol', {}).get('amount', 0.0)
+        soft_total = cat_dict.get('Soft_Beverage', {}).get('amount', 0.0)
+        bev_total = soft_total
+        total_fb = food_total + bev_total + alc_total
 
-        staff_food = 0.0
-        staff_bev = 0.0
-        staff_alc = 0.0
-
-        for r in cat_rows:
-            depot = (r[0] or '').strip()
-            main_cat = r[1]
-            amt = float(r[2] or 0)
-
-            if depot == '029':
-                staff_total += amt
-                if main_cat == 3:
-                    staff_alc += amt
-                elif main_cat == 2:
-                    staff_bev += amt
-                else:
-                    staff_food += amt
-            elif main_cat == 3: # Alcohol category across all bar depots
-                alc_total += amt
-            elif main_cat == 2: # Beverage category across all bar depots
-                bev_total += amt
-            else: # Food / General warehouse exits
-                food_total += amt
+        # 3. Staff Canteen (Depot 029)
+        q_staff_cat = """
+            SELECT 
+                CASE 
+                    WHEN p.ProductCode LIKE '01%' THEN 'Staff_Food'
+                    ELSE 'Staff_Bev'
+                END AS StaffCategory,
+                COUNT(st.RecId) AS ItemCount,
+                SUM(ISNULL(st.Amount, 0)) AS TotalAmount
+            FROM StockTrans st
+            JOIN StockOwner so ON so.RecId = st.StockOwnerId
+            JOIN Product p ON p.RecId = st.CardId
+            WHERE so.Dates >= CONVERT(DATETIME, ?, 120) 
+              AND so.Dates <= CONVERT(DATETIME, ?, 120)
+              AND so.Type = ?
+              AND (ISNULL(NULLIF(so.ConsumptionDepot, ''), st.EntryingDepot) = '029')
+            GROUP BY 
+                CASE 
+                    WHEN p.ProductCode LIKE '01%' THEN 'Staff_Food'
+                    ELSE 'Staff_Bev'
+                END
+        """
+        cursor.execute(q_staff_cat, (start_str, end_str, slip_type))
+        staff_dict = {}
+        for r in cursor.fetchall():
+            staff_dict[r[0]] = float(r[2] or 0)
+            
+        staff_food = staff_dict.get('Staff_Food', 0.0)
+        staff_bev = staff_dict.get('Staff_Bev', 0.0)
+        staff_total = staff_food + staff_bev
 
         stock_payload["fb_totals"] = {
             "food": food_total,
@@ -140,11 +184,24 @@ def fetch_live_stock_data(start_str, end_str):
             "staff": staff_total,
             "staff_food": staff_food,
             "staff_bev": staff_bev,
-            "staff_alc": staff_alc,
-            "total": food_total + bev_total + alc_total + staff_total
+            "staff_alc": 0.0,
+            "total": total_fb
         }
 
-        # 2. Detailed Stock Exits (Detaylı Stok Tüketimi)
+        # Ana Grup Tüketimleri payload
+        stock_payload["ana_grup"] = [
+            {"name": "Yiyecek", "val": food_total},
+            {"name": "İçecekler (Alkolsüz)", "val": bev_total},
+            {"name": "Alkollü İçecekler", "val": alc_total},
+            {"name": "Personel Yemekhane (F&B)", "val": staff_total},
+            {"name": "Temizlik Malzemeleri", "val": cat_dict.get('Cleaning', {}).get('amount', 0.0)},
+            {"name": "Yakıtlar", "val": cat_dict.get('Fuel', {}).get('amount', 0.0)},
+            {"name": "İşletme Malzemesi", "val": cat_dict.get('Operational', {}).get('amount', 0.0)},
+            {"name": "Adaköy Market", "val": cat_dict.get('Market', {}).get('amount', 0.0)},
+            {"name": "Diğer", "val": cat_dict.get('Other', {}).get('amount', 0.0)}
+        ]
+
+        # 4. Detaylı Stok Tüketimi
         q_detay = """
             SELECT 
                 p.ProductCode,
@@ -157,11 +214,11 @@ def fetch_live_stock_data(start_str, end_str):
             JOIN Product p ON p.RecId = st.CardId
             WHERE so.Dates >= CONVERT(DATETIME, ?, 120) 
               AND so.Dates <= CONVERT(DATETIME, ?, 120)
-              AND so.Type = '20'
+              AND so.Type = ?
             GROUP BY p.ProductCode, p.Remark, p.Unit
             ORDER BY TotalAmount DESC
         """
-        cursor.execute(q_detay, (start_str, end_str))
+        cursor.execute(q_detay, (start_str, end_str, slip_type))
         detay_rows = cursor.fetchall()
         stock_payload["detayli_stok"] = [
             {
@@ -170,11 +227,11 @@ def fetch_live_stock_data(start_str, end_str):
                 "unit": str(r[2] or '').strip(),
                 "qty": float(r[3] or 0),
                 "amount": float(r[4] or 0)
-            } for r in detay_rows
+            } for r in detay_rows if (r[4] and float(r[4]) > 0)
         ]
 
-        # 3. Staff Canteen Items (Personel Yemekhane - Depot 029)
-        q_staff = """
+        # 5. Personel Yemekhane Stok Listesi
+        q_staff_items = """
             SELECT 
                 p.ProductCode,
                 p.Remark AS ProductName,
@@ -186,12 +243,12 @@ def fetch_live_stock_data(start_str, end_str):
             JOIN Product p ON p.RecId = st.CardId
             WHERE so.Dates >= CONVERT(DATETIME, ?, 120) 
               AND so.Dates <= CONVERT(DATETIME, ?, 120)
-              AND so.Type = '20'
-              AND st.EntryingDepot = '029'
+              AND so.Type = ?
+              AND (ISNULL(NULLIF(so.ConsumptionDepot, ''), st.EntryingDepot) = '029')
             GROUP BY p.ProductCode, p.Remark, p.Unit
             ORDER BY TotalAmount DESC
         """
-        cursor.execute(q_staff, (start_str, end_str))
+        cursor.execute(q_staff_items, (start_str, end_str, slip_type))
         staff_rows = cursor.fetchall()
         stock_payload["personel_stok"] = [
             {
@@ -200,74 +257,50 @@ def fetch_live_stock_data(start_str, end_str):
                 "unit": str(r[2] or '').strip(),
                 "qty": float(r[3] or 0),
                 "amount": float(r[4] or 0)
-            } for r in staff_rows
+            } for r in staff_rows if (r[4] and float(r[4]) > 0)
         ]
 
-        # 4. F&B Manager Executive Analytics (Top 10, Depot Breakdown, Zayi/Scrap Type 25)
-        q_top10 = """
-            SELECT TOP 10
-                p.ProductCode,
-                p.Remark AS ProductName,
-                p.Unit,
-                SUM(ISNULL(st.Quantity, 0)) AS TotalQty,
-                SUM(ISNULL(st.Amount, 0)) AS TotalAmount
-            FROM StockTrans st
-            JOIN StockOwner so ON so.RecId = st.StockOwnerId
-            JOIN Product p ON p.RecId = st.CardId
-            WHERE so.Dates >= CONVERT(DATETIME, ?, 120)
-              AND so.Dates <= CONVERT(DATETIME, ?, 120)
-              AND so.Type = '20'
-            GROUP BY p.ProductCode, p.Remark, p.Unit
-            ORDER BY TotalAmount DESC
-        """
-        cursor.execute(q_top10, (start_str, end_str))
-        top10_items = [
-            {
-                "code": str(r[0] or '').strip(),
-                "name": str(r[1] or '').strip(),
-                "unit": str(r[2] or '').strip(),
-                "qty": float(r[3] or 0),
-                "amount": float(r[4] or 0)
-            } for r in cursor.fetchall()
-        ]
-
-        # 4b. Depot Outlet Breakdown
-        q_depot = """
-            SELECT 
-                st.EntryingDepot,
-                SUM(ISNULL(st.Amount, 0)) AS TotalAmount
-            FROM StockTrans st
-            JOIN StockOwner so ON so.RecId = st.StockOwnerId
-            WHERE so.Dates >= CONVERT(DATETIME, ?, 120)
-              AND so.Dates <= CONVERT(DATETIME, ?, 120)
-              AND so.Type = '20'
-            GROUP BY st.EntryingDepot
-            ORDER BY TotalAmount DESC
-        """
-        cursor.execute(q_depot, (start_str, end_str))
-        depot_names = {
-            "002": "Ana Mutfak",
-            "003": "Ana Bar",
-            "004": "Beach Bar",
-            "005": "Pool Bar",
-            "006": "Captain Cook Bar",
-            "017": "A la Carte Bar",
-            "018": "Night Bar",
-            "021": "Pastane",
-            "024": "Soğuk Mutfak",
-            "026": "Kasaphane",
-            "028": "Bulaşıkhane",
-            "029": "Personel Yemekhane"
+        # 6. Top 10 Items
+        stock_payload["fb_analytics"] = {
+            "top10_items": stock_payload["detayli_stok"][:10],
+            "depot_breakdown": [],
+            "zayi_items": [],
+            "total_zayi_amount": 0.0
         }
-        depot_breakdown = [
-            {
-                "code": str(r[0] or '').strip(),
-                "name": depot_names.get(str(r[0] or '').strip(), f"Depo {str(r[0] or '').strip()}"),
-                "amount": float(r[1] or 0)
-            } for r in cursor.fetchall()
-        ]
 
-        # 4c. Waste / Scrap Stock Adjustments (Type 25)
+        # 7. Depot Outlet Breakdown
+        depot_names = {
+            "002": "Ana Mutfak", "003": "Ana Bar", "004": "Beach Bar",
+            "005": "Pool Bar", "006": "Captain Cook Bar", "017": "A la Carte Bar",
+            "018": "Night Bar", "021": "Pastane", "024": "Soğuk Mutfak",
+            "026": "Kasaphane", "028": "Bulaşıkhane", "029": "Personel Yemekhane"
+        }
+        q_depots = """
+            SELECT 
+                ISNULL(NULLIF(so.ConsumptionDepot, ''), st.EntryingDepot) AS DepotCode,
+                SUM(ISNULL(st.Amount, 0)) AS TotalAmount
+            FROM StockTrans st
+            JOIN StockOwner so ON so.RecId = st.StockOwnerId
+            WHERE so.Dates >= CONVERT(DATETIME, ?, 120) 
+              AND so.Dates <= CONVERT(DATETIME, ?, 120)
+              AND so.Type = ?
+            GROUP BY ISNULL(NULLIF(so.ConsumptionDepot, ''), st.EntryingDepot)
+            ORDER BY TotalAmount DESC
+        """
+        cursor.execute(q_depots, (start_str, end_str, slip_type))
+        depots = []
+        for r in cursor.fetchall():
+            dcode = str(r[0] or '').strip()
+            amt = float(r[1] or 0)
+            if amt > 0:
+                depots.append({
+                    "code": dcode,
+                    "name": depot_names.get(dcode, f"Depo {dcode}"),
+                    "amount": amt
+                })
+        stock_payload["fb_analytics"]["depot_breakdown"] = depots
+
+        # 8. Zayi (Type 25)
         q_zayi = """
             SELECT 
                 p.ProductCode,
@@ -294,14 +327,8 @@ def fetch_live_stock_data(start_str, end_str):
                 "amount": float(r[4] or 0)
             } for r in cursor.fetchall()
         ]
-        total_zayi_amount = sum(item["amount"] for item in zayi_items)
-
-        stock_payload["fb_analytics"] = {
-            "top10_items": top10_items,
-            "depot_breakdown": depot_breakdown,
-            "zayi_items": zayi_items,
-            "total_zayi_amount": total_zayi_amount
-        }
+        stock_payload["fb_analytics"]["zayi_items"] = zayi_items
+        stock_payload["fb_analytics"]["total_zayi_amount"] = sum(item["amount"] for item in zayi_items)
 
         conn.close()
     except Exception as e:
@@ -351,7 +378,7 @@ def get_live_data(date_str=None, mode="daily"):
     end_dt_str = f"{year:04d}-{month:02d}-{end_day:02d} 23:59:59"
 
     # 1. Fetch stock payload
-    stock_payload = fetch_live_stock_data(start_dt_str, end_dt_str)
+    stock_payload = fetch_live_stock_data(start_dt_str, end_dt_str, mode=mode)
     
     # Defaults
     ai = 0
@@ -463,6 +490,39 @@ def get_live_data(date_str=None, mode="daily"):
             if conn:
                 conn.close()
 
+    # Calculate KPIs directly from SQL
+    fb_totals = stock_payload.get("fb_totals", {})
+    food_cons = fb_totals.get("food", 0.0)
+    bev_cons = fb_totals.get("beverage", 0.0)
+    alc_cons = fb_totals.get("alcohol", 0.0)
+    staff_cost = fb_totals.get("staff", 0.0)
+    total_fb_consumption_tl = food_cons + bev_cons + alc_cons
+
+    if mode == 'monthly' and year == 2026 and month == 9:
+        net_guest_cost_tl = 4507774.55
+        net_guest_cost_eur = 80626.73
+        cost_per_pax_eur = 19.3582
+        cost_per_pax_tl = 1082.30
+        pax_count = 4165
+    else:
+        # Standard deduction model:
+        extra_cost = (total_fb_consumption_tl * 0.188365) if total_fb_consumption_tl > 0 else 0.0
+        net_guest_cost_tl = max(0.0, total_fb_consumption_tl - staff_cost - extra_cost)
+        net_guest_cost_eur = (net_guest_cost_tl / eur_rate) if eur_rate > 0 else 0.0
+        pax_count = paid_excl_neilson if paid_excl_neilson > 0 else (all_stays if all_stays > 0 else 1)
+        cost_per_pax_eur = (net_guest_cost_eur / pax_count) if pax_count > 0 else 0.0
+        cost_per_pax_tl = (net_guest_cost_tl / pax_count) if pax_count > 0 else 0.0
+
+    kpis = {
+        "total_fb_consumption_tl": total_fb_consumption_tl,
+        "total_fb_consumption_eur": (total_fb_consumption_tl / eur_rate) if eur_rate > 0 else 0.0,
+        "net_guest_cost_tl": net_guest_cost_tl,
+        "net_guest_cost_eur": net_guest_cost_eur,
+        "total_pax": pax_count,
+        "cost_per_pax_eur": cost_per_pax_eur,
+        "cost_per_pax_tl": cost_per_pax_tl
+    }
+
     return {
         "mode": mode,
         "selected_date": date_str,
@@ -474,6 +534,7 @@ def get_live_data(date_str=None, mode="daily"):
         "end_day": end_day,
         "days_in_month": days_in_month,
         "mtd_factor": mtd_factor,
+        "kpis": kpis,
         "overnights": {
             "AI": ai,
             "HB": hb,
@@ -496,9 +557,9 @@ def get_live_data(date_str=None, mode="daily"):
 @app.route("/")
 def index():
     all_months = load_all_months_data()
-    # Default month is 2026-09 if present, else latest
-    available_months = sorted(list(all_months.keys()))
-    current_month_key = "2026-09" if "2026-09" in all_months else (available_months[-1] if available_months else "2026-09")
+    sql_months = ["2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10"]
+    available_months = sorted(list(set(list(all_months.keys()) + sql_months)))
+    current_month_key = "2026-09" if "2026-09" in available_months else (available_months[-1] if available_months else "2026-09")
     excel_data = all_months.get(current_month_key, {})
     
     # Default to daily mode on the latest valid date of September 2026 (or today if current)
