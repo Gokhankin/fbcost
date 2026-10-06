@@ -54,102 +54,6 @@
             cursor: pointer;
             color-scheme: dark;
         }
-
-        /* View Mode Toggle (Günlük vs Aylık) */
-        .mode-toggle-group {
-            display: inline-flex;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 3px;
-            gap: 4px;
-        }
-
-        .mode-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            padding: 6px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .mode-btn:hover {
-            color: var(--text-primary);
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .mode-btn.active {
-            background: var(--accent-blue);
-            color: #ffffff;
-            box-shadow: 0 2px 8px rgba(0, 180, 216, 0.4);
-        }
-
-        .control-panel {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        /* Month Selector Dropdown */
-        .month-select-dropdown {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid var(--accent-blue);
-            color: #ffffff;
-            font-size: 13px;
-            font-weight: 700;
-            padding: 8px 14px;
-            border-radius: 10px;
-            cursor: pointer;
-            outline: none;
-            box-shadow: 0 4px 14px rgba(0, 180, 216, 0.15);
-            transition: all 0.2s ease;
-        }
-
-        .month-select-dropdown:hover, .month-select-dropdown:focus {
-            border-color: #00d4ff;
-            background: rgba(15, 23, 42, 0.95);
-        }
-
-        .month-select-dropdown option {
-            background: #0f172a;
-            color: #ffffff;
-            font-weight: 600;
-        }
-
-        @media (max-width: 768px) {
-            .control-panel {
-                flex-wrap: wrap !important;
-                gap: 8px !important;
-                justify-content: space-between !important;
-            }
-            .mode-toggle-group {
-                width: 100% !important;
-                display: flex !important;
-            }
-            .mode-btn {
-                flex: 1 !important;
-                justify-content: center !important;
-                padding: 8px 6px !important;
-                font-size: 12px !important;
-            }
-            .month-select-dropdown {
-                width: 100% !important;
-                box-sizing: border-box !important;
-            }
-            #date-selector-wrapper {
-                width: 100% !important;
-                box-sizing: border-box !important;
-                justify-content: center !important;
-            }
-        }
     </style>
 
     <style>
@@ -922,42 +826,17 @@
                 </div>
             </div>
             <div class="control-panel">
-                <!-- Mode Selector: Günlük vs 1'er Aylık -->
-                <div class="mode-toggle-group">
-                    <button type="button" id="btn-mode-daily" class="mode-btn active" onclick="switchViewMode('daily')">
-                        <i class="fa-solid fa-calendar-day"></i> Günlük
-                    </button>
-                    <button type="button" id="btn-mode-monthly" class="mode-btn" onclick="switchViewMode('monthly')">
-                        <i class="fa-solid fa-calendar"></i> 1'er Aylık
-                    </button>
+                <div style="text-align: right; margin-right: 12px;">
+                    <span style="font-size: 11px; color: var(--text-muted); display: block; font-weight: 600;">€ EUR KURU:</span>
+                    <span id="header-rate" style="font-size: 14px; font-weight: 800; color: var(--accent-green);">53.1877 TL</span>
                 </div>
-
-                <!-- Month Selector Dropdown (Shown in Aylık mode) -->
-                <div id="month-selector-wrapper" style="display: none;">
-                    <select id="month-picker-select" class="month-select-dropdown" onchange="onMonthSelected(this.value)">
-                        {% for m in available_months %}
-                        <option value="{{ m }}" {% if m == current_month_key %}selected{% endif %}>
-                            {% if m == '2026-06' %}Haziran 2026
-                            {% elif m == '2026-08' %}Ağustos 2026
-                            {% elif m == '2026-09' %}Eylül 2026
-                            {% else %}{{ m }}{% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- Date Selector Component (Shown in Günlük mode, single day picker) -->
-                <div id="date-selector-wrapper" class="date-selector-trigger" onclick="try{ document.getElementById('date-picker-input').showPicker(); }catch(e){ document.getElementById('date-picker-input').click(); }" title="Tarih Değiştirmek İçin Tıklayın">
+                
+                <!-- Date Selector Component (Clickable anywhere on the button) -->
+                <div class="date-selector-trigger" onclick="try{ document.getElementById('date-picker-input').showPicker(); }catch(e){ document.getElementById('date-picker-input').click(); }" title="Tarih Değiştirmek İçin Tıklayın">
                     <i class="fa-solid fa-calendar-days" style="color: var(--accent-blue);"></i>
                     <span id="date-display-text">--.--.----</span>
                     <i class="fa-solid fa-chevron-down" style="font-size: 11px; opacity: 0.7;"></i>
                     <input type="date" id="date-picker-input" onchange="onDateSelected(this.value)" value="{{ selected_date }}">
-                </div>
-
-                <!-- EUR Rate Display -->
-                <div style="text-align: right; margin-left: 4px;">
-                    <span style="font-size: 11px; color: var(--text-muted); display: block; font-weight: 600;">€ EUR KURU:</span>
-                    <span id="header-rate" style="font-size: 14px; font-weight: 800; color: var(--accent-green);">55.9092 TL</span>
                 </div>
             </div>
         </header>
@@ -1409,15 +1288,12 @@
 
     <!-- Pass backend variables to Javascript -->
     <script>
-        let EXCEL_DATA = {{ excel_data | tojson | safe }};
-        const ALL_MONTHS_DATA = {{ all_months_data | tojson | safe }};
-        let CURRENT_MONTH_KEY = "{{ current_month_key }}";
+        const EXCEL_DATA = {{ excel_data | tojson | safe }};
         let LIVE_DATA = {{ live_data | tojson | safe }};
         let SELECTED_DATE = "{{ selected_date }}";
-        let CURRENT_VIEW_MODE = "daily"; // 'daily' or 'monthly'
         
-        let currentPax = (LIVE_DATA.overnights && LIVE_DATA.overnights.Paid_excl_Neilson) ? LIVE_DATA.overnights.Paid_excl_Neilson : 4165;
-        let currentEurRate = (LIVE_DATA.exchange_rates && LIVE_DATA.exchange_rates.EUR) ? LIVE_DATA.exchange_rates.EUR : 55.9092;
+        let currentPax = (LIVE_DATA.overnights && LIVE_DATA.overnights.Paid_excl_Neilson) ? LIVE_DATA.overnights.Paid_excl_Neilson : 2946;
+        let currentEurRate = (LIVE_DATA.exchange_rates && LIVE_DATA.exchange_rates.EUR) ? LIVE_DATA.exchange_rates.EUR : 53.1877;
         
         // Detailed stok pagination state
         let filteredStok = [];
@@ -1445,19 +1321,6 @@
             return `${day} ${months[month - 1]} ${year}`;
         }
 
-        function formatMonthTurkish(monthKey) {
-            if (!monthKey) return "";
-            const parts = monthKey.split("-");
-            if (parts.length !== 2) return monthKey;
-            const year = parts[0];
-            const month = parseInt(parts[1], 10);
-            const months = [
-                "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
-                "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
-            ];
-            return `${months[month - 1]} ${year}`;
-        }
-
         // Format currency helper with Turkish thousand dot separators
         function formatNumber(val, decimals=2) {
             if (val === null || val === undefined || isNaN(val)) return '0';
@@ -1482,20 +1345,8 @@
             }
             const datePicker = document.getElementById("date-picker-input");
             if (datePicker) datePicker.value = SELECTED_DATE;
-
-            // Set current month key from SELECTED_DATE
-            const parts = SELECTED_DATE.split("-");
-            if (parts.length >= 2) {
-                const mk = `${parts[0]}-${parts[1]}`;
-                if (ALL_MONTHS_DATA && ALL_MONTHS_DATA[mk]) {
-                    CURRENT_MONTH_KEY = mk;
-                    const mSelect = document.getElementById("month-picker-select");
-                    if (mSelect) mSelect.value = mk;
-                }
-            }
-
-            // Start in daily mode
-            switchViewMode('daily', false);
+            updateDateHeaderUI(SELECTED_DATE);
+            renderAllData();
             initCharts();
         }
 
@@ -1505,152 +1356,48 @@
             initApp();
         }
 
-        function switchViewMode(mode, fetchData = true) {
-            CURRENT_VIEW_MODE = mode;
-            const btnDaily = document.getElementById("btn-mode-daily");
-            const btnMonthly = document.getElementById("btn-mode-monthly");
-            const dateWrapper = document.getElementById("date-selector-wrapper");
-            const monthWrapper = document.getElementById("month-selector-wrapper");
-
-            if (mode === 'monthly') {
-                if (btnDaily) btnDaily.classList.remove("active");
-                if (btnMonthly) btnMonthly.classList.add("active");
-                if (dateWrapper) dateWrapper.style.display = "none";
-                if (monthWrapper) monthWrapper.style.display = "inline-block";
-
-                // Ensure EXCEL_DATA matches the selected month
-                if (ALL_MONTHS_DATA && ALL_MONTHS_DATA[CURRENT_MONTH_KEY]) {
-                    EXCEL_DATA = ALL_MONTHS_DATA[CURRENT_MONTH_KEY];
-                }
-
-                if (fetchData) {
-                    fetchLiveDataForMonth(CURRENT_MONTH_KEY);
-                } else {
-                    updateDateHeaderUI();
-                    renderAllData();
-                    updateCharts();
-                }
-            } else { // daily
-                if (btnDaily) btnDaily.classList.add("active");
-                if (btnMonthly) btnMonthly.classList.remove("active");
-                if (dateWrapper) dateWrapper.style.display = "inline-flex";
-                if (monthWrapper) monthWrapper.style.display = "none";
-
-                // Also align EXCEL_DATA with the month of SELECTED_DATE
-                const parts = SELECTED_DATE.split("-");
-                if (parts.length >= 2) {
-                    const mk = `${parts[0]}-${parts[1]}`;
-                    if (ALL_MONTHS_DATA && ALL_MONTHS_DATA[mk]) {
-                        CURRENT_MONTH_KEY = mk;
-                        EXCEL_DATA = ALL_MONTHS_DATA[mk];
-                    }
-                }
-
-                if (fetchData) {
-                    fetchLiveDataForDate(SELECTED_DATE);
-                } else {
-                    updateDateHeaderUI();
-                    renderAllData();
-                    updateCharts();
-                }
-            }
-        }
-
-        function onMonthSelected(newMonthKey) {
-            if (!newMonthKey) return;
-            CURRENT_MONTH_KEY = newMonthKey;
-            if (ALL_MONTHS_DATA && ALL_MONTHS_DATA[newMonthKey]) {
-                EXCEL_DATA = ALL_MONTHS_DATA[newMonthKey];
-            }
-            fetchLiveDataForMonth(newMonthKey);
+        function updateDateHeaderUI(dateStr) {
+            const formattedDate = formatDateTurkish(dateStr);
+            document.getElementById("date-display-text").textContent = formattedDate;
+            document.getElementById("header-period-subtitle").textContent = `${formattedDate} itibariyle — Canlı Sedna SQL Entegrasyonu`;
+            document.getElementById("header-rate").textContent = formatNumber(currentEurRate, 4) + ' TL';
+            document.getElementById("tuketim-pax-indicator").textContent = `Pax: ${currentPax}`;
+            document.getElementById("occ-chart-title").textContent = `Oda Gecelemeleri Dağılımı (${formattedDate})`;
         }
 
         function onDateSelected(newDateStr) {
             if (!newDateStr) return;
             SELECTED_DATE = newDateStr;
-            const parts = newDateStr.split("-");
-            if (parts.length >= 2) {
-                const mk = `${parts[0]}-${parts[1]}`;
-                if (ALL_MONTHS_DATA && ALL_MONTHS_DATA[mk]) {
-                    CURRENT_MONTH_KEY = mk;
-                    EXCEL_DATA = ALL_MONTHS_DATA[mk];
-                    const mSelect = document.getElementById("month-picker-select");
-                    if (mSelect) mSelect.value = mk;
-                }
-            }
-            fetchLiveDataForDate(newDateStr);
-        }
-
-        function fetchLiveDataForDate(dateStr) {
+            
+            // Show loading indicator in header rate
             document.getElementById("header-rate").textContent = "Yükleniyor...";
-            fetch(`/api/live_data?date=${dateStr}&mode=daily`)
+            
+            fetch(`/api/live_data?date=${newDateStr}`)
                 .then(res => res.json())
                 .then(data => {
                     LIVE_DATA = data;
                     if (data.exchange_rates && data.exchange_rates.EUR) {
                         currentEurRate = data.exchange_rates.EUR;
                     }
-                    if (data.overnights && data.overnights.Paid_excl_Neilson !== undefined) {
+                    if (data.overnights && data.overnights.Paid_excl_Neilson) {
                         currentPax = data.overnights.Paid_excl_Neilson;
                     }
-                    updateDateHeaderUI();
+                    updateDateHeaderUI(newDateStr);
                     renderAllData();
                     updateCharts();
                 })
                 .catch(err => {
-                    console.error("Günlük veri alma hatası:", err);
-                    updateDateHeaderUI();
+                    console.error("Tarih verisi alma hatası:", err);
+                    updateDateHeaderUI(newDateStr);
                 });
         }
 
-        function fetchLiveDataForMonth(monthKey) {
-            document.getElementById("header-rate").textContent = "Yükleniyor...";
-            fetch(`/api/live_data?date=${monthKey}-01&mode=monthly`)
-                .then(res => res.json())
-                .then(data => {
-                    LIVE_DATA = data;
-                    if (data.exchange_rates && data.exchange_rates.EUR) {
-                        currentEurRate = data.exchange_rates.EUR;
-                    }
-                    if (data.overnights && data.overnights.Paid_excl_Neilson !== undefined) {
-                        currentPax = data.overnights.Paid_excl_Neilson;
-                    }
-                    updateDateHeaderUI();
-                    renderAllData();
-                    updateCharts();
-                })
-                .catch(err => {
-                    console.error("Aylık veri alma hatası:", err);
-                    updateDateHeaderUI();
-                });
-        }
-
-        function updateDateHeaderUI() {
-            if (CURRENT_VIEW_MODE === 'monthly') {
-                const label = formatMonthTurkish(CURRENT_MONTH_KEY);
-                document.getElementById("header-period-subtitle").textContent = `${label} Tam Ay Durumu — Canlı SQL & F&B Cost Raporu`;
-                document.getElementById("header-rate").textContent = formatNumber(currentEurRate, 4) + ' TL';
-                document.getElementById("tuketim-pax-indicator").textContent = `Aylık Pax: ${currentPax}`;
-                document.getElementById("occ-chart-title").textContent = `Oda Gecelemeleri Dağılımı (${label})`;
-            } else {
-                const formattedDate = formatDateTurkish(SELECTED_DATE);
-                document.getElementById("date-display-text").textContent = formattedDate;
-                document.getElementById("header-period-subtitle").textContent = `${formattedDate} Tek Gün Verisi — Canlı Sedna SQL Entegrasyonu`;
-                document.getElementById("header-rate").textContent = formatNumber(currentEurRate, 4) + ' TL';
-                document.getElementById("tuketim-pax-indicator").textContent = `Günlük Pax: ${currentPax}`;
-                document.getElementById("occ-chart-title").textContent = `Oda Gecelemeleri Dağılımı (${formattedDate})`;
-            }
-        }
-
-        // Helper to get dynamic MTD scaling factor based on selected view mode
+        // Helper to get dynamic MTD scaling factor based on selected date
         function getMtdFactor() {
-            if (CURRENT_VIEW_MODE === 'monthly') {
-                return 1.0;
-            }
             if (LIVE_DATA && LIVE_DATA.mtd_factor !== undefined) {
                 return LIVE_DATA.mtd_factor;
             }
-            return 1.0 / 30.0;
+            return 1.0;
         }
 
         // Render functions
@@ -1664,59 +1411,33 @@
             renderYonetim();
         }
 
-        function getExcelTuketimRows() {
-            const rows = EXCEL_DATA.FB_Tuketim || [];
-            let yiyecekRow = null;
-            let icecekRow = null;
-            let alkolRow = null;
-            let toplamRow = null;
-            let marketRow = null;
-
-            rows.forEach((r, idx) => {
-                if (!r || r.length < 3) return;
-                const name = String(r[2] || '').trim();
-                if (name === 'Yiyecek') yiyecekRow = r;
-                else if (name === 'İçecekler' || (name.includes('ecek') && !name.includes('Alkol'))) icecekRow = r;
-                else if (name.includes('Alkol')) alkolRow = r;
-                else if (name === 'TOPLAM') toplamRow = r;
-                else if (name.includes('Market')) marketRow = r;
-            });
-
-            return { yiyecekRow, icecekRow, alkolRow, toplamRow, marketRow };
-        }
-
         function renderKPIs() {
             const mtdFactor = getMtdFactor();
-            const { yiyecekRow, icecekRow, alkolRow, toplamRow } = getExcelTuketimRows();
+            let foodCons = 3246670.44 * mtdFactor;
+            let bevCons = 339278.04 * mtdFactor;
+            let alcCons = 741581.88 * mtdFactor;
+            let staffTL = 483654.93 * mtdFactor;
 
-            let foodCons = (yiyecekRow ? parseFloat(yiyecekRow[3] || 0) : 4533783.99) * mtdFactor;
-            let bevCons = (icecekRow ? parseFloat(icecekRow[3] || 0) : 525185.47) * mtdFactor;
-            let alcCons = (alkolRow ? parseFloat(alkolRow[3] || 0) : 1271425.45) * mtdFactor;
-            let staffTL = ((yiyecekRow ? parseFloat(yiyecekRow[6] || 0) : 631722.93) + 
-                           (icecekRow ? parseFloat(icecekRow[6] || 0) : 5377.92)) * mtdFactor;
-
-            let satisMalTL = ((yiyecekRow ? parseFloat(yiyecekRow[5] || 0) : 592574.38) + 
-                              (icecekRow ? parseFloat(icecekRow[5] || 0) : 123410.22) + 
-                              (alkolRow ? parseFloat(alkolRow[5] || 0) : 469534.90)) * mtdFactor;
-
-            if (LIVE_DATA && LIVE_DATA.stock && LIVE_DATA.stock.fb_totals && LIVE_DATA.stock.fb_totals.total > 0) {
+            if (LIVE_DATA && LIVE_DATA.stock && LIVE_DATA.stock.fb_totals) {
                 const fb = LIVE_DATA.stock.fb_totals;
                 foodCons = fb.food || foodCons;
                 bevCons = fb.beverage || bevCons;
                 alcCons = fb.alcohol || alcCons;
                 staffTL = fb.staff || staffTL;
-
-                // Dynamic sales cost calculation if using live database exits
-                const satisMalFood = foodCons * 0.1307;
-                const satisMalBev = bevCons * 0.2350;
-                const satisMalAlc = alcCons * 0.3693;
-                satisMalTL = satisMalFood + satisMalBev + satisMalAlc;
             }
 
             const totalConsTL = foodCons + bevCons + alcCons + staffTL;
-            const netGuestCostTL = totalConsTL - satisMalTL - staffTL;
-            const netGuestCostEUR = currentEurRate > 0 ? (netGuestCostTL / currentEurRate) : 0;
-            const totalConsEUR = currentEurRate > 0 ? (totalConsTL / currentEurRate) : 0;
+
+            // Satış Maliyeti (Cost of Extra Sales) ratios from Excel baseline:
+            const satisMalFood = foodCons * 0.15562;
+            const satisMalBev = bevCons * 0.381955;
+            const satisMalAlc = alcCons * 0.493473;
+            const totalSatisMal = satisMalFood + satisMalBev + satisMalAlc;
+
+            // Correct Excel Net Maliyet = Total Cons - Satış Maliyeti - Staff Cost
+            const netGuestCostTL = totalConsTL - totalSatisMal - staffTL;
+            const netGuestCostEUR = netGuestCostTL / currentEurRate;
+            const totalConsEUR = totalConsTL / currentEurRate;
             
             const costPerPaxEUR = currentPax > 0 ? (netGuestCostEUR / currentPax) : 0;
             const costPerPaxTL = currentPax > 0 ? (netGuestCostTL / currentPax) : 0;
@@ -1727,8 +1448,8 @@
             document.getElementById("kpi-net-guest-cost").textContent = formatTL(netGuestCostTL);
             document.getElementById("kpi-net-guest-cost-eur").textContent = formatEUR(netGuestCostEUR);
             
-            document.getElementById("kpi-pax-count").textContent = formatNumber(currentPax, 0) + (CURRENT_VIEW_MODE === 'monthly' ? " Aylık Pax" : " Günlük Pax");
-            document.getElementById("kpi-pax-type").textContent = CURRENT_VIEW_MODE === 'monthly' ? `${formatMonthTurkish(CURRENT_MONTH_KEY)} Toplamı` : `${formatDateTurkish(SELECTED_DATE)} Verisi`;
+            document.getElementById("kpi-pax-count").textContent = formatNumber(currentPax, 0) + " Pax-Gece";
+            document.getElementById("kpi-pax-type").textContent = `${formatDateTurkish(SELECTED_DATE)} Verisi`;
             
             document.getElementById("kpi-pax-cost").textContent = formatEUR(costPerPaxEUR);
             document.getElementById("kpi-pax-cost-tl").textContent = formatTL(costPerPaxTL);
@@ -1736,45 +1457,39 @@
 
         function renderFBTuketim() {
             const mtdFactor = getMtdFactor();
-            const { yiyecekRow, icecekRow, alkolRow, toplamRow, marketRow } = getExcelTuketimRows();
+            const rows = EXCEL_DATA.FB_Tuketim;
             const tbody = document.querySelector("#tbl-fb-tuketim tbody");
             tbody.innerHTML = "";
             
-            let foodCons = (yiyecekRow ? parseFloat(yiyecekRow[3] || 0) : 4533783.99) * mtdFactor;
-            let bevCons = (icecekRow ? parseFloat(icecekRow[3] || 0) : 525185.47) * mtdFactor;
-            let alcCons = (alkolRow ? parseFloat(alkolRow[3] || 0) : 1271425.45) * mtdFactor;
+            let foodCons = parseFloat(rows[10][3]) * mtdFactor;
+            let bevCons = parseFloat(rows[11][3]) * mtdFactor;
+            let alcCons = parseFloat(rows[12][3]) * mtdFactor;
             
-            let staffFood = (yiyecekRow ? parseFloat(yiyecekRow[6] || 0) : 631722.93) * mtdFactor;
-            let staffBev = (icecekRow ? parseFloat(icecekRow[6] || 0) : 5377.92) * mtdFactor;
-            let staffAlc = (alkolRow ? parseFloat(alkolRow[6] || 0) : 0) * mtdFactor;
-
-            let satisMalFood = (yiyecekRow ? parseFloat(yiyecekRow[5] || 0) : 592574.38) * mtdFactor;
-            let satisMalBev = (icecekRow ? parseFloat(icecekRow[5] || 0) : 123410.22) * mtdFactor;
-            let satisMalAlc = (alkolRow ? parseFloat(alkolRow[5] || 0) : 469534.90) * mtdFactor;
-
-            let extraSalesFood = (yiyecekRow ? parseFloat(yiyecekRow[4] || 0) : 1693069.67) * mtdFactor;
-            let extraSalesBev = (icecekRow ? parseFloat(icecekRow[4] || 0) : 493640.87) * mtdFactor;
-            let extraSalesAlc = (alkolRow ? parseFloat(alkolRow[4] || 0) : 1878139.62) * mtdFactor;
+            let staffFood = 191854.53 * mtdFactor;
+            let staffBev = 7794.78 * mtdFactor;
+            let staffAlc = 11263.82 * mtdFactor;
             
-            if (LIVE_DATA && LIVE_DATA.stock && LIVE_DATA.stock.fb_totals && LIVE_DATA.stock.fb_totals.total > 0) {
+            if (LIVE_DATA && LIVE_DATA.stock && LIVE_DATA.stock.fb_totals) {
                 const fb = LIVE_DATA.stock.fb_totals;
                 foodCons = fb.food || foodCons;
                 bevCons = fb.beverage || bevCons;
                 alcCons = fb.alcohol || alcCons;
-                staffFood = fb.staff_food || (fb.staff * 0.98);
-                staffBev = fb.staff_bev || (fb.staff * 0.02);
-                staffAlc = fb.staff_alc || 0;
-
-                satisMalFood = foodCons * 0.1307;
-                satisMalBev = bevCons * 0.2350;
-                satisMalAlc = alcCons * 0.3693;
-
-                extraSalesFood = satisMalFood / 0.35;
-                extraSalesBev = satisMalBev / 0.25;
-                extraSalesAlc = satisMalAlc / 0.25;
+                staffFood = fb.staff_food || staffFood;
+                staffBev = fb.staff_bev || staffBev;
+                staffAlc = fb.staff_alc || staffAlc;
             }
             
             const staffTotal = staffFood + staffBev + staffAlc;
+            
+            // Satış Maliyeti ratio to raw stock exit from Excel baseline
+            const satisMalFood = foodCons * 0.15562;
+            const satisMalBev = bevCons * 0.381955;
+            const satisMalAlc = alcCons * 0.493473;
+            
+            // Extra sales revenue = Satış Maliyeti / Margin
+            const extraSalesFood = satisMalFood / 0.35;
+            const extraSalesBev = satisMalBev / 0.25;
+            const extraSalesAlc = satisMalAlc / 0.25;
             
             const items = [
                 { name: "Yiyecek", cons: foodCons, extra: extraSalesFood, satisMal: satisMalFood, staff: staffFood },
@@ -1800,11 +1515,11 @@
                 const netCostTL = consumption - salesCost - staffCost;
                 const ciroPrim = 0;
                 
-                const netCostEUR = currentEurRate > 0 ? (netCostTL / currentEurRate) : 0;
+                const netCostEUR = netCostTL / currentEurRate;
                 const costPerPaxEUR = currentPax > 0 ? (netCostEUR / currentPax) : 0;
                 
                 const staffCostPerPaxTL = currentPax > 0 ? (staffCost / currentPax) : 0;
-                const staffCostPerPaxEUR = currentEurRate > 0 ? (staffCostPerPaxTL / currentEurRate) : 0;
+                const staffCostPerPaxEUR = staffCostPerPaxTL / currentEurRate;
                 
                 const tr = document.createElement("tr");
                 if (item.isTotal) tr.className = "total-row";
@@ -1827,13 +1542,14 @@
             });
             
             // Market Sales
+            const marketRow = rows[15];
             const mtbody = document.querySelector("#tbl-market tbody");
             mtbody.innerHTML = "";
             
-            const sales = (marketRow ? parseFloat(marketRow[3] || 0) : 235189.32) * mtdFactor;
-            const cost = (marketRow ? parseFloat(marketRow[4] || 0) : 65391.78) * mtdFactor;
+            const sales = parseFloat(marketRow[3]) * mtdFactor;
+            const cost = parseFloat(marketRow[4]) * mtdFactor;
             const profit = sales - cost;
-            const profitEur = currentEurRate > 0 ? (profit / currentEurRate) : 0;
+            const profitEur = profit / currentEurRate;
             const profitRatio = sales > 0 ? ((profit / sales) * 100) : 0;
             
             const trm = document.createElement("tr");
@@ -2227,19 +1943,12 @@
             }
 
             // 4. Run-Rate EOM Projection
-            const selectedDay = (LIVE_DATA && LIVE_DATA.day) ? LIVE_DATA.day : 15;
-            const daysInMonth = (LIVE_DATA && LIVE_DATA.days_in_month) ? LIVE_DATA.days_in_month : 30;
+            const selectedDay = (LIVE_DATA && LIVE_DATA.day_of_month) ? LIVE_DATA.day_of_month : 18;
+            const daysInMonth = (LIVE_DATA && LIVE_DATA.days_in_month) ? LIVE_DATA.days_in_month : 31;
             
-            let dailyRateTL = 0;
-            let eomProjectedTL = 0;
-            if (CURRENT_VIEW_MODE === 'monthly') {
-                eomProjectedTL = totalConsTL;
-                dailyRateTL = daysInMonth > 0 ? (totalConsTL / daysInMonth) : 0;
-            } else {
-                dailyRateTL = totalConsTL; // in daily mode, totalConsTL is that exact single day
-                eomProjectedTL = dailyRateTL * daysInMonth;
-            }
-            const eomProjectedEUR = currentEurRate > 0 ? (eomProjectedTL / currentEurRate) : 0;
+            const dailyRateTL = selectedDay > 0 ? (totalConsTL / selectedDay) : 0;
+            const eomProjectedTL = dailyRateTL * daysInMonth;
+            const eomProjectedEUR = eomProjectedTL / currentEurRate;
 
             const eomProjElem = document.getElementById("kpi-eom-projected");
             if (eomProjElem) eomProjElem.textContent = `${formatNumber(eomProjectedTL)} ₺`;
@@ -2249,17 +1958,12 @@
             const dailyRateElem = document.getElementById("rr-daily-rate");
             if (dailyRateElem) dailyRateElem.textContent = `${formatNumber(dailyRateTL)} ₺ / Gün`;
             
-            const netGuestTL = totalConsTL * 0.712; // Net Guest cost ratio (~71%)
-            let projectedNetGuestEUR = 0;
-            if (CURRENT_VIEW_MODE === 'monthly') {
-                projectedNetGuestEUR = currentEurRate > 0 ? (netGuestTL / currentEurRate) : 0;
-            } else {
-                projectedNetGuestEUR = currentEurRate > 0 ? ((netGuestTL * daysInMonth) / currentEurRate) : 0;
-            }
+            const netGuestTL = totalConsTL - (totalConsTL * 0.25);
+            const projectedNetGuestEUR = (netGuestTL / selectedDay * daysInMonth) / currentEurRate;
             const netGuestEurElem = document.getElementById("rr-net-guest-eur");
             if (netGuestEurElem) netGuestEurElem.textContent = `${formatNumber(projectedNetGuestEUR)} €`;
 
-            const projectedCostPerPaxEUR = currentPax > 0 ? (currentEurRate > 0 ? ((netGuestTL / currentEurRate) / currentPax) : 0) : 0;
+            const projectedCostPerPaxEUR = currentPax > 0 ? ((projectedNetGuestEUR / (currentPax / selectedDay * daysInMonth))) : 0;
             const paxCostEurElem = document.getElementById("rr-pax-cost-eur");
             if (paxCostEurElem) paxCostEurElem.textContent = `${formatNumber(projectedCostPerPaxEUR, 2)} € / Pax-Gece`;
         }
@@ -2453,24 +2157,12 @@ function renderOthers() {
 
         function updateCharts() {
             const mtdFactor = getMtdFactor();
-            const eurRate = (typeof currentEurRate !== 'undefined' && currentEurRate > 0) ? currentEurRate : 55.9092;
+            const eurRate = (typeof currentEurRate !== 'undefined' && currentEurRate > 0) ? currentEurRate : 53.1877;
             
             if (pieChartInstance) {
-                const { yiyecekRow, icecekRow, alkolRow } = getExcelTuketimRows();
-                let foodNetTL = (yiyecekRow ? parseFloat(yiyecekRow[7] || 0) : 3309486.68) * mtdFactor;
-                let bevNetTL = (icecekRow ? parseFloat(icecekRow[7] || 0) : 396397.33) * mtdFactor;
-                let alcNetTL = (alkolRow ? parseFloat(alkolRow[7] || 0) : 801890.54) * mtdFactor;
-
-                if (LIVE_DATA && LIVE_DATA.stock && LIVE_DATA.stock.fb_totals && LIVE_DATA.stock.fb_totals.total > 0) {
-                    const fb = LIVE_DATA.stock.fb_totals;
-                    foodNetTL = (fb.food || foodNetTL) * (1 - 0.1307);
-                    bevNetTL = (fb.beverage || bevNetTL) * (1 - 0.2350);
-                    alcNetTL = (fb.alcohol || alcNetTL) * (1 - 0.3693);
-                }
-
-                const foodNetEur = foodNetTL / eurRate;
-                const bevNetEur = bevNetTL / eurRate;
-                const alcNetEur = alcNetTL / eurRate;
+                const foodNetEur = (2270063.10 * mtdFactor) / eurRate;
+                const bevNetEur = (197373.97 * mtdFactor) / eurRate;
+                const alcNetEur = (375630.99 * mtdFactor) / eurRate;
                 
                 pieChartInstance.data.datasets[0].data = [foodNetEur, bevNetEur, alcNetEur];
                 pieChartInstance.update();

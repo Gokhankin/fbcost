@@ -5,6 +5,7 @@ import calendar
 import pyodbc
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request
+
 env_path = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(env_path):
     load_dotenv(env_path)
@@ -13,44 +14,24 @@ else:
 
 app = Flask(__name__)
 
-FALLBACK_DATA = {
-    "overnights": {
-        "AI": 1821,
-        "HB": 1266,
-        "BB": 1189,
-        "Neilson": 1513,
-        "Comp": 150,
-        "Paid_excl_Neilson": 4276,
-        "Paid_incl_Neilson": 4276,
-        "Paid_and_Comp_excl_Neilson": 4426,
-        "All_Stays": 4426
-    },
-    "exchange_rates": {
-        "EUR": 55.304152,
-        "GBP": 64.125000
-    },
-    "pos_sales": {},
-    "stock": {
-        "fb_totals": {
-            "food": 4423733.71,
-            "beverage": 504342.43,
-            "alcohol": 1018869.18,
-            "staff": 538913.91,
-            "staff_food": 533101.04,
-            "staff_bev": 5812.87,
-            "staff_alc": 0.0,
-            "total": 5946945.32
-        },
-        "detayli_stok": [],
-        "personel_stok": [],
-        "fb_analytics": {
-            "top10_items": [],
-            "depot_breakdown": [],
-            "zayi_items": [],
-            "total_zayi_amount": 0.0
-        }
-    }
-}
+MONTHS_DATA_PATH = os.path.join(os.path.dirname(__file__), "fbcost_months_data.json")
+DATA_PATH = os.path.join(os.path.dirname(__file__), "fbcost_data.json")
+
+def load_all_months_data():
+    if os.path.exists(MONTHS_DATA_PATH):
+        try:
+            with open(MONTHS_DATA_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading {MONTHS_DATA_PATH}: {e}")
+    if os.path.exists(DATA_PATH):
+        try:
+            with open(DATA_PATH, "r", encoding="utf-8") as f:
+                d = json.load(f)
+                return {"2026-09": d}
+        except Exception as e:
+            print(f"Error loading {DATA_PATH}: {e}")
+    return {}
 
 def get_db_connection():
     db_srv = os.getenv("DB_SERVER", "192.168.0.41,1433")
@@ -79,14 +60,12 @@ def get_stock_db_connection():
     stk_usr = os.getenv("STOCK_DB_USER", "sa")
     stk_pwd = os.getenv("STOCK_DB_PASS", "00-0C-29-35-5A-D3")
 
-    # Try FreeTDS first (works on Linux)
     freetds_str = f"DRIVER=FreeTDS;SERVER={stk_srv};PORT={stk_port};DATABASE={stk_db};UID={stk_usr};PWD={stk_pwd};TDS_Version=7.4;"
     try:
         return pyodbc.connect(freetds_str, timeout=3)
     except Exception:
         pass
 
-    # Fallback to ODBC Driver 18 / 17 (Windows environment)
     ms_str = f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={stk_srv},{stk_port};DATABASE={stk_db};UID={stk_usr};PWD={stk_pwd};TrustServerCertificate=yes;"
     try:
         return pyodbc.connect(ms_str, timeout=3)
@@ -97,7 +76,12 @@ def get_stock_db_connection():
 def fetch_live_stock_data(start_str, end_str):
     conn = get_stock_db_connection()
     if not conn:
-        return FALLBACK_DATA["stock"]
+        return {
+            "fb_totals": {"food": 0.0, "beverage": 0.0, "alcohol": 0.0, "staff": 0.0, "staff_food": 0.0, "staff_bev": 0.0, "staff_alc": 0.0, "total": 0.0},
+            "detayli_stok": [],
+            "personel_stok": [],
+            "fb_analytics": {"top10_items": [], "depot_breakdown": [], "zayi_items": [], "total_zayi_amount": 0.0}
+        }
 
     stock_payload = {}
     try:
@@ -220,7 +204,6 @@ def fetch_live_stock_data(start_str, end_str):
         ]
 
         # 4. F&B Manager Executive Analytics (Top 10, Depot Breakdown, Zayi/Scrap Type 25)
-        # 4a. Top 10 High Cost Items
         q_top10 = """
             SELECT TOP 10
                 p.ProductCode,
@@ -325,11 +308,15 @@ def fetch_live_stock_data(start_str, end_str):
         print(f"Error fetching live stock data: {e}")
         if conn:
             conn.close()
-        stock_payload = FALLBACK_DATA["stock"]
 
     return stock_payload
 
-def get_live_data(date_str=None):
+def get_live_data(date_str=None, mode="daily"):
+    """
+    mode:
+      - "daily": Single selected day (e.g. 2026-09-15)
+      - "monthly": Full calendar month (1st of month to last day of month)
+    """
     if not date_str:
         date_str = datetime.now().strftime("%Y-%m-%d")
     
@@ -344,178 +331,205 @@ def get_live_data(date_str=None):
     day = dt.day
     
     _, days_in_month = calendar.monthrange(year, month)
-    mtd_factor = round(day / float(days_in_month), 4)
     
-    iso_start = f"{year:04d}{month:02d}01"
-    iso_end = f"{year:04d}{month:02d}{day:02d}"
+    if mode == "monthly":
+        start_day = 1
+        end_day = days_in_month
+        mtd_factor = 1.0
+        display_label = f"{year}-{month:02d} (Aylık)"
+    else: # daily
+        mode = "daily"
+        start_day = day
+        end_day = day
+        mtd_factor = 1.0 / float(days_in_month)
+        display_label = f"{year}-{month:02d}-{day:02d} (Günlük)"
     
-    start_dt_str = f"{year:04d}-{month:02d}-01 00:00:00"
-    end_dt_str = f"{year:04d}-{month:02d}-{day:02d} 23:59:59"
+    iso_start = f"{year:04d}{month:02d}{start_day:02d}"
+    iso_end = f"{year:04d}{month:02d}{end_day:02d}"
+    
+    start_dt_str = f"{year:04d}-{month:02d}-{start_day:02d} 00:00:00"
+    end_dt_str = f"{year:04d}-{month:02d}-{end_day:02d} 23:59:59"
 
-    # Fetch live stock payload from 10.0.0.11 (ANTMARINSEDNA2021)
+    # 1. Fetch stock payload
     stock_payload = fetch_live_stock_data(start_dt_str, end_dt_str)
     
-    conn = get_db_connection()
-    if not conn:
-        print("Using fallback database values for overnights/POS.")
-        res = dict(FALLBACK_DATA)
-        res["selected_date"] = date_str
-        res["day_of_month"] = day
-        res["days_in_month"] = days_in_month
-        res["mtd_factor"] = mtd_factor
-        res["stock"] = stock_payload
-        return res
+    # Defaults
+    ai = 0
+    hb = 0
+    bb = 0
+    neilson = 0
+    comp = 0
+    paid_excl_neilson = 0
+    paid_incl_neilson = 0
+    paid_and_comp_excl_neilson = 0
+    all_stays = 0
+    eur_rate = 55.909183
+    gbp_rate = 64.125000
+    pos_sales = {}
     
-    try:
-        cursor = conn.cursor()
-        
-        query_overnights = """
-            SELECT 
-                a.AgencyCode,
-                dd.Board,
-                SUM(ISNULL(dd.Pax, 0)) AS pax_nights
-            FROM DailyDetail dd
-            JOIN Reservation r ON r.RecId = dd.ReservationId
-            JOIN Agency a ON a.RecId = r.AgencyId
-            WHERE dd.StayDate >= CONVERT(DATETIME, ?, 112) 
-              AND dd.StayDate <= CONVERT(DATETIME, ?, 112) + ' 23:59:59'
-              AND dd.Status != -1 AND r.Status != -1
-            GROUP BY a.AgencyCode, dd.Board
-        """
-        cursor.execute(query_overnights, (iso_start, iso_end))
-        rows = cursor.fetchall()
-        
-        ai = sum(r.pax_nights for r in rows if r.AgencyCode != 'COMP' and r.Board == 'AI')
-        hb = sum(r.pax_nights for r in rows if r.AgencyCode != 'COMP' and r.Board == 'HB')
-        bb = sum(r.pax_nights for r in rows if r.AgencyCode != 'COMP' and r.Board == 'BB')
-        neilson = sum(r.pax_nights for r in rows if 'NEILSON' in (r.AgencyCode or '').upper())
-        comp = sum(r.pax_nights for r in rows if r.AgencyCode == 'COMP')
-        
-        paid_excl_neilson = ai + hb + bb
-        paid_incl_neilson = paid_excl_neilson
-        paid_and_comp_excl_neilson = paid_excl_neilson + comp
-        all_stays = paid_and_comp_excl_neilson
-        
-        if paid_excl_neilson == 0:
-            paid_excl_neilson = int(FALLBACK_DATA["overnights"]["Paid_excl_Neilson"] * mtd_factor)
-            paid_incl_neilson = int(FALLBACK_DATA["overnights"]["Paid_incl_Neilson"] * mtd_factor)
-            paid_and_comp_excl_neilson = int(FALLBACK_DATA["overnights"]["Paid_and_Comp_excl_Neilson"] * mtd_factor)
-            all_stays = int(FALLBACK_DATA["overnights"]["All_Stays"] * mtd_factor)
-            ai = int(FALLBACK_DATA["overnights"]["AI"] * mtd_factor)
-            hb = int(FALLBACK_DATA["overnights"]["HB"] * mtd_factor)
-            bb = int(FALLBACK_DATA["overnights"]["BB"] * mtd_factor)
-            neilson = int(FALLBACK_DATA["overnights"]["Neilson"] * mtd_factor)
-            comp = int(FALLBACK_DATA["overnights"]["Comp"] * mtd_factor)
-
-        query_eur = """
-            SELECT AVG(ISNULL(NULLIF(Invoice, 0), ISNULL(NULLIF(Pos, 0), Buying))) as eur_rate
-            FROM ExchangeRate
-            WHERE CurrencyCode = 'EUR'
-              AND CurrDate >= CONVERT(DATETIME, ?, 112)
-              AND CurrDate <= CONVERT(DATETIME, ?, 112) + ' 23:59:59'
-        """
-        cursor.execute(query_eur, (iso_start, iso_end))
-        row_eur = cursor.fetchone()
-        eur_rate = float(row_eur[0]) if row_eur and row_eur[0] else FALLBACK_DATA["exchange_rates"]["EUR"]
-        
-        query_gbp = """
-            SELECT AVG(ISNULL(NULLIF(Invoice, 0), ISNULL(NULLIF(Pos, 0), Buying))) as gbp_rate
-            FROM ExchangeRate
-            WHERE CurrencyCode = 'GBP'
-              AND CurrDate >= CONVERT(DATETIME, ?, 112)
-              AND CurrDate <= CONVERT(DATETIME, ?, 112) + ' 23:59:59'
-        """
-        cursor.execute(query_gbp, (iso_start, iso_end))
-        row_gbp = cursor.fetchone()
-        gbp_rate = float(row_gbp[0]) if row_gbp and row_gbp[0] else FALLBACK_DATA["exchange_rates"]["GBP"]
-        
-        # Live POS Sales Query from Sedna SQL
-        query_pos = """
-            SELECT 
-                ps.DepartCode,
-                ISNULL(d.DepartName, ps.DepartCode) AS DepartName,
-                SUM(ISNULL(ps.PriceTotal, 0)) AS TotalPrice,
-                SUM(ISNULL(ps.NetAmount, 0)) AS NetTotal
-            FROM PosSummary ps
-            LEFT JOIN Department d ON d.DepartCode = ps.DepartCode
-            WHERE ps.SellingDate >= CONVERT(DATETIME, ?, 112)
-              AND ps.SellingDate <= CONVERT(DATETIME, ?, 112) + ' 23:59:59'
-            GROUP BY ps.DepartCode, d.DepartName
-        """
-        cursor.execute(query_pos, (iso_start, iso_end))
-        rows_pos = cursor.fetchall()
-        pos_sales = {}
-        for r in rows_pos:
-            code_str = str(r[0]).strip()
-            pos_sales[code_str] = {
-                "name": str(r[1]).strip(),
-                "total_price": float(r[2] or 0),
-                "net_total": float(r[3] or 0)
-            }
-        
-        conn.close()
-        
-        return {
-            "selected_date": date_str,
-            "day_of_month": day,
-            "days_in_month": days_in_month,
-            "mtd_factor": mtd_factor,
-            "overnights": {
-                "AI": ai,
-                "HB": hb,
-                "BB": bb,
-                "Neilson": neilson,
-                "Comp": comp,
-                "Paid_excl_Neilson": paid_excl_neilson,
-                "Paid_incl_Neilson": paid_incl_neilson,
-                "Paid_and_Comp_excl_Neilson": paid_and_comp_excl_neilson,
-                "All_Stays": all_stays
-            },
-            "exchange_rates": {
-                "EUR": eur_rate,
-                "GBP": gbp_rate
-            },
-            "pos_sales": pos_sales,
-            "stock": stock_payload
-        }
-        
-    except Exception as e:
-        print(f"Error querying live data: {e}")
-        if conn:
+    conn = get_db_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            
+            # Query Overnights
+            query_overnights = """
+                SELECT 
+                    a.AgencyCode,
+                    dd.Board,
+                    SUM(ISNULL(dd.Pax, 0)) AS pax_nights
+                FROM DailyDetail dd
+                JOIN Reservation r ON r.RecId = dd.ReservationId
+                JOIN Agency a ON a.RecId = r.AgencyId
+                WHERE dd.StayDate >= CONVERT(DATETIME, ?, 112) 
+                  AND dd.StayDate <= CONVERT(DATETIME, ?, 112) + ' 23:59:59'
+                  AND dd.Status != -1 AND r.Status != -1
+                GROUP BY a.AgencyCode, dd.Board
+            """
+            cursor.execute(query_overnights, (iso_start, iso_end))
+            rows = cursor.fetchall()
+            
+            ai = sum(r.pax_nights for r in rows if r.AgencyCode != 'COMP' and r.Board == 'AI')
+            hb = sum(r.pax_nights for r in rows if r.AgencyCode != 'COMP' and r.Board == 'HB')
+            bb = sum(r.pax_nights for r in rows if r.AgencyCode != 'COMP' and r.Board == 'BB')
+            neilson = sum(r.pax_nights for r in rows if 'NEILSON' in (r.AgencyCode or '').upper())
+            comp = sum(r.pax_nights for r in rows if r.AgencyCode == 'COMP')
+            
+            paid_excl_neilson = ai + hb + bb
+            paid_incl_neilson = paid_excl_neilson
+            paid_and_comp_excl_neilson = paid_excl_neilson + comp
+            all_stays = paid_and_comp_excl_neilson
+            
+            # Query Exchange Rates
+            query_eur = """
+                SELECT AVG(ISNULL(NULLIF(Invoice, 0), ISNULL(NULLIF(Pos, 0), Buying))) as eur_rate
+                FROM ExchangeRate
+                WHERE CurrencyCode = 'EUR'
+                  AND CurrDate >= CONVERT(DATETIME, ?, 112)
+                  AND CurrDate <= CONVERT(DATETIME, ?, 112) + ' 23:59:59'
+            """
+            cursor.execute(query_eur, (iso_start, iso_end))
+            row_eur = cursor.fetchone()
+            if row_eur and row_eur[0]:
+                eur_rate = float(row_eur[0])
+            
+            query_gbp = """
+                SELECT AVG(ISNULL(NULLIF(Invoice, 0), ISNULL(NULLIF(Pos, 0), Buying))) as gbp_rate
+                FROM ExchangeRate
+                WHERE CurrencyCode = 'GBP'
+                  AND CurrDate >= CONVERT(DATETIME, ?, 112)
+                  AND CurrDate <= CONVERT(DATETIME, ?, 112) + ' 23:59:59'
+            """
+            cursor.execute(query_gbp, (iso_start, iso_end))
+            row_gbp = cursor.fetchone()
+            if row_gbp and row_gbp[0]:
+                gbp_rate = float(row_gbp[0])
+            
+            # POS Sales Query
+            query_pos = """
+                SELECT 
+                    ps.DepartCode,
+                    ISNULL(d.DepartName, ps.DepartCode) AS DepartName,
+                    SUM(ISNULL(ps.PriceTotal, 0)) AS TotalPrice,
+                    SUM(ISNULL(ps.NetAmount, 0)) AS NetTotal
+                FROM PosSummary ps
+                LEFT JOIN Department d ON d.DepartCode = ps.DepartCode
+                WHERE ps.SellingDate >= CONVERT(DATETIME, ?, 112)
+                  AND ps.SellingDate <= CONVERT(DATETIME, ?, 112) + ' 23:59:59'
+                GROUP BY ps.DepartCode, d.DepartName
+            """
+            cursor.execute(query_pos, (iso_start, iso_end))
+            rows_pos = cursor.fetchall()
+            for r in rows_pos:
+                code_str = str(r[0]).strip()
+                pos_sales[code_str] = {
+                    "name": str(r[1]).strip(),
+                    "total_price": float(r[2] or 0),
+                    "net_total": float(r[3] or 0)
+                }
+            
             conn.close()
-        res = dict(FALLBACK_DATA)
-        res["selected_date"] = date_str
-        res["day_of_month"] = day
-        res["days_in_month"] = days_in_month
-        res["mtd_factor"] = mtd_factor
-        res["stock"] = stock_payload
-        return res
+        except Exception as e:
+            print(f"Error querying live data: {e}")
+            if conn:
+                conn.close()
 
-def load_excel_data():
-    json_path = os.path.join(os.path.dirname(__file__), "fbcost_data.json")
-    if os.path.exists(json_path):
-        with open(json_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
+    return {
+        "mode": mode,
+        "selected_date": date_str,
+        "display_label": display_label,
+        "year": year,
+        "month": month,
+        "day": day,
+        "start_day": start_day,
+        "end_day": end_day,
+        "days_in_month": days_in_month,
+        "mtd_factor": mtd_factor,
+        "overnights": {
+            "AI": ai,
+            "HB": hb,
+            "BB": bb,
+            "Neilson": neilson,
+            "Comp": comp,
+            "Paid_excl_Neilson": paid_excl_neilson,
+            "Paid_incl_Neilson": paid_incl_neilson,
+            "Paid_and_Comp_excl_Neilson": paid_and_comp_excl_neilson,
+            "All_Stays": all_stays
+        },
+        "exchange_rates": {
+            "EUR": eur_rate,
+            "GBP": gbp_rate
+        },
+        "pos_sales": pos_sales,
+        "stock": stock_payload
+    }
 
 @app.route("/")
 def index():
-    excel_data = load_excel_data()
+    all_months = load_all_months_data()
+    # Default month is 2026-09 if present, else latest
+    available_months = sorted(list(all_months.keys()))
+    current_month_key = "2026-09" if "2026-09" in all_months else (available_months[-1] if available_months else "2026-09")
+    excel_data = all_months.get(current_month_key, {})
+    
+    # Default to daily mode on the latest valid date of September 2026 (or today if current)
     today_str = datetime.now().strftime("%Y-%m-%d")
-    live_data = get_live_data(today_str)
-    return render_template("index.html", excel_data=excel_data, live_data=live_data, selected_date=today_str)
+    default_date = "2026-09-30" if "2026-09" in all_months else today_str
+    
+    live_data = get_live_data(default_date, mode="monthly")
+    
+    return render_template(
+        "index.html", 
+        excel_data=excel_data, 
+        all_months_data=all_months,
+        available_months=available_months,
+        current_month_key=current_month_key,
+        live_data=live_data, 
+        selected_date=default_date
+    )
 
 @app.route("/api/live_data")
 def api_live_data():
     date_str = request.args.get("date")
+    mode = request.args.get("mode", "daily") # "daily" or "monthly"
+    
     if not date_str:
         year = request.args.get("year", type=int)
         month = request.args.get("month", type=int)
+        day = request.args.get("day", type=int)
         if year and month:
-            date_str = f"{year:04d}-{month:02d}-01"
+            d = day if (day and mode == "daily") else 1
+            date_str = f"{year:04d}-{month:02d}-{d:02d}"
         else:
             date_str = datetime.now().strftime("%Y-%m-%d")
-    return jsonify(get_live_data(date_str))
+            
+    return jsonify(get_live_data(date_str, mode=mode))
+
+@app.route("/api/get_month_excel")
+def api_get_month_excel():
+    month_key = request.args.get("month_key", "2026-09")
+    all_months = load_all_months_data()
+    return jsonify(all_months.get(month_key, {}))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5005, debug=False)
