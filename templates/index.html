@@ -521,6 +521,71 @@
     .kpi-header-badge .badge-val-blue { color: var(--accent-blue); font-weight: 800; }
     .kpi-header-badge .badge-val-orange { color: var(--accent-orange); font-weight: 800; }
 
+    /* Prominent Red Border & Highlight Box for F&B Net Maliyet Table "TOPLAM" Row */
+    .total-row.total-highlight-red {
+        background: rgba(239, 68, 68, 0.15) !important;
+        box-shadow: 0 4px 18px rgba(239, 68, 68, 0.25) !important;
+    }
+
+    .total-row.total-highlight-red td {
+        border-top: 2.5px solid #ef4444 !important;
+        border-bottom: 2.5px solid #ef4444 !important;
+        background: rgba(239, 68, 68, 0.12) !important;
+        padding-top: 12px !important;
+        padding-bottom: 12px !important;
+    }
+
+    .total-row.total-highlight-red td:first-child {
+        border-left: 2.5px solid #ef4444 !important;
+        border-top-left-radius: 10px !important;
+        border-bottom-left-radius: 10px !important;
+    }
+
+    .total-row.total-highlight-red td:last-child {
+        border-right: 2.5px solid #ef4444 !important;
+        border-top-right-radius: 10px !important;
+        border-bottom-right-radius: 10px !important;
+    }
+
+    /* Universal Clean Table Alignment & Order */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    table th, 
+    table td {
+        vertical-align: middle !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+    }
+
+    /* First column default: Left-aligned for proper readability of names & labels */
+    table th:first-child, 
+    table td:first-child {
+        text-align: left !important;
+        vertical-align: middle !important;
+    }
+
+    /* Special 2nd column text alignment for specific tables with Code + Name */
+    #tbl-stok-detay th:nth-child(2),
+    #tbl-stok-detay td:nth-child(2),
+    #tbl-top10 th:nth-child(2),
+    #tbl-top10 td:nth-child(2),
+    #tbl-depot-breakdown th:nth-child(2),
+    #tbl-depot-breakdown td:nth-child(2) {
+        text-align: left !important;
+        vertical-align: middle !important;
+    }
+
+    /* Pension KPI Table */
+    .pension-kpi-table td:first-child {
+        text-align: left !important;
+    }
+    .pension-kpi-table td:nth-child(2) {
+        text-align: center !important;
+    }
+
     /* Desktop Specific Layout Rules */
     @media (min-width: 1101px) {
         .dashboard-grid {
@@ -1142,7 +1207,7 @@
                                 </tr>
                                 <tr style="background: rgba(255, 255, 255, 0.02);">
                                     <td style="font-weight: 700;">Ortalama € Kur:</td>
-                                    <td id="pension-eur-rate" style="font-weight: 800; color: var(--accent-green); font-size: 14px;">₺55,91</td>
+                                    <td id="pension-eur-rate" style="font-weight: 800; color: var(--accent-green); font-size: 14px;">55,91 TL</td>
                                     <td></td>
                                 </tr>
                             </tbody>
@@ -1164,9 +1229,9 @@
                                     <th>Satış Maliyeti (TL)</th>
                                     <th>Personel Cost (TL)</th>
                                     <th>Net Maliyet (TL)</th>
-                                    <th>Ciro Prim</th>
-                                    <th>Kişi Başı TL (Staff)</th>
-                                    <th>Kişi Başı € (Staff)</th>
+                                    <th>Ciro Prim (TL)</th>
+                                    <th>Kişi Başı Staff (TL)</th>
+                                    <th>Kişi Başı Staff (€)</th>
                                     <th>Net Maliyet (€)</th>
                                     <th style="color: var(--accent-orange);">K.Başı Net Cost (€)</th>
                                 </tr>
@@ -1190,7 +1255,7 @@
                                     <th>Maliyet Tutarı (TL)</th>
                                     <th>Net Kar (TL)</th>
                                     <th>Net Kar (€)</th>
-                                    <th>Kar Oranı</th>
+                                    <th>Kar Oranı (%)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1261,8 +1326,8 @@
                                     <tr>
                                         <th>Ana Grup</th>
                                         <th>Tüketim (TL)</th>
-                                        <th>K.Başı TL</th>
-                                        <th>K.Başı €</th>
+                                        <th>K.Başı (TL)</th>
+                                        <th>K.Başı (€)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1342,7 +1407,7 @@
                                 <th>Ürün Adı</th>
                                 <th>Stok Miktarı</th>
                                 <th>Birim</th>
-                                <th>Açıklama / Tüketim</th>
+                                <th>Tüketim Tutarı (TL)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1367,7 +1432,7 @@
                                     <th>Ürün Adı</th>
                                     <th>Stok Miktarı</th>
                                     <th>Birim</th>
-                                    <th>Tüketim</th>
+                                    <th>Tüketim Miktarı</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -2027,7 +2092,7 @@
             if (elCompBar) elCompBar.style.width = Math.min(100, Math.max(0, compPctVal)) + '%';
 
             const elRate = document.getElementById("pension-eur-rate");
-            if (elRate) elRate.textContent = '₺' + formatNumber(eurRate, 2);
+            if (elRate) elRate.textContent = formatNumber(eurRate, 2) + ' TL';
         }
 
         function renderFBTuketim() {
@@ -2103,21 +2168,36 @@
                 const staffCostPerPaxEUR = currentEurRate > 0 ? (staffCostPerPaxTL / currentEurRate) : 0;
                 
                 const tr = document.createElement("tr");
-                if (item.isTotal) tr.className = "total-row";
-                
-                tr.innerHTML = `
-                    <td><strong>${item.name}</strong></td>
-                    <td>${formatNumber(consumption)} ₺</td>
-                    <td>${extraSales > 0 ? formatNumber(extraSales) + ' ₺' : '—'}</td>
-                    <td>${salesCost > 0 ? formatNumber(salesCost) + ' ₺' : '—'}</td>
-                    <td>${staffCost > 0 ? formatNumber(staffCost) + ' ₺' : '—'}</td>
-                    <td class="highlight-row"><strong>${formatNumber(netCostTL)} ₺</strong></td>
-                    <td>${ciroPrim > 0 ? formatNumber(ciroPrim) + ' ₺' : '—'}</td>
-                    <td>${formatNumber(staffCostPerPaxTL)} ₺</td>
-                    <td>${formatNumber(staffCostPerPaxEUR, 3)} €</td>
-                    <td style="color: var(--accent-blue);"><strong>${formatNumber(netCostEUR)} €</strong></td>
-                    <td style="color: var(--accent-orange); font-weight:700;">${formatNumber(costPerPaxEUR, 3)} €</td>
-                `;
+                if (item.isTotal) {
+                    tr.className = "total-row total-highlight-red";
+                    tr.innerHTML = `
+                        <td><strong style="color: #ef4444; font-size: 13px; font-weight: 900; letter-spacing: 0.5px;">${item.name}</strong></td>
+                        <td style="font-weight: 800; color: #ffffff; font-size: 13px;">${formatNumber(consumption)}</td>
+                        <td style="font-weight: 700; color: #f1f5f9;">${extraSales > 0 ? formatNumber(extraSales) : '—'}</td>
+                        <td style="font-weight: 700; color: #f1f5f9;">${salesCost > 0 ? formatNumber(salesCost) : '—'}</td>
+                        <td style="font-weight: 700; color: #f1f5f9;">${staffCost > 0 ? formatNumber(staffCost) : '—'}</td>
+                        <td style="font-weight: 900; color: #fbbf24; font-size: 13.5px; background: rgba(251, 191, 36, 0.12); border-radius: 4px;">${formatNumber(netCostTL)}</td>
+                        <td>${ciroPrim > 0 ? formatNumber(ciroPrim) : '—'}</td>
+                        <td style="font-weight: 700; color: #f1f5f9;">${formatNumber(staffCostPerPaxTL)}</td>
+                        <td style="font-weight: 700; color: #f1f5f9;">${formatNumber(staffCostPerPaxEUR, 3)}</td>
+                        <td style="color: #38bdf8; font-weight: 900; font-size: 13.5px;">${formatNumber(netCostEUR)}</td>
+                        <td style="color: #f97316; font-weight: 900; font-size: 14px; background: rgba(249, 115, 22, 0.15); border-radius: 4px;">${formatNumber(costPerPaxEUR, 3)}</td>
+                    `;
+                } else {
+                    tr.innerHTML = `
+                        <td><strong>${item.name}</strong></td>
+                        <td>${formatNumber(consumption)}</td>
+                        <td>${extraSales > 0 ? formatNumber(extraSales) : '—'}</td>
+                        <td>${salesCost > 0 ? formatNumber(salesCost) : '—'}</td>
+                        <td>${staffCost > 0 ? formatNumber(staffCost) : '—'}</td>
+                        <td class="highlight-row"><strong>${formatNumber(netCostTL)}</strong></td>
+                        <td>${ciroPrim > 0 ? formatNumber(ciroPrim) : '—'}</td>
+                        <td>${formatNumber(staffCostPerPaxTL)}</td>
+                        <td>${formatNumber(staffCostPerPaxEUR, 3)}</td>
+                        <td style="color: var(--accent-blue);"><strong>${formatNumber(netCostEUR)}</strong></td>
+                        <td style="color: var(--accent-orange); font-weight:700;">${formatNumber(costPerPaxEUR, 3)}</td>
+                    `;
+                }
                 
                 tbody.appendChild(tr);
             });
@@ -2135,10 +2215,10 @@
             const trm = document.createElement("tr");
             trm.innerHTML = `
                 <td><strong>Market Satış</strong></td>
-                <td>${formatNumber(sales)} ₺</td>
-                <td>${formatNumber(cost)} ₺</td>
-                <td style="color: var(--accent-green); font-weight:700;">${formatNumber(profit)} ₺</td>
-                <td style="color: var(--accent-blue); font-weight:700;">${formatNumber(profitEur)} €</td>
+                <td>${formatNumber(sales)}</td>
+                <td>${formatNumber(cost)}</td>
+                <td style="color: var(--accent-green); font-weight:700;">${formatNumber(profit)}</td>
+                <td style="color: var(--accent-blue); font-weight:700;">${formatNumber(profitEur)}</td>
                 <td><span class="badge badge-green">${formatNumber(profitRatio, 1)}%</span></td>
             `;
             mtbody.appendChild(trm);
@@ -2194,9 +2274,9 @@
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
                         <td><strong>${item.name}</strong></td>
-                        <td style="font-weight:700;">${formatNumber(item.val)} ₺</td>
-                        <td>${formatNumber(perPaxTL)} ₺</td>
-                        <td style="color: var(--accent-blue); font-weight:700;">${formatNumber(perPaxEUR, 3)} €</td>
+                        <td style="font-weight:700;">${formatNumber(item.val)}</td>
+                        <td>${formatNumber(perPaxTL)}</td>
+                        <td style="color: var(--accent-blue); font-weight:700;">${formatNumber(perPaxEUR, 3)}</td>
                     `;
                     anaTbody.appendChild(tr);
                 });
@@ -2208,9 +2288,9 @@
                 const totalPerPaxEUR = currentEurRate > 0 ? (totalPerPaxTL / currentEurRate) : 0;
                 trTot.innerHTML = `
                     <td><strong>TOPLAM F&B TÜKETİM</strong></td>
-                    <td style="font-weight:800; color:var(--accent-green);">${formatNumber(totalAnaTL)} ₺</td>
-                    <td style="font-weight:700;">${formatNumber(totalPerPaxTL)} ₺</td>
-                    <td style="color: var(--accent-orange); font-weight:800;">${formatNumber(totalPerPaxEUR, 3)} €</td>
+                    <td style="font-weight:800; color:var(--accent-green);">${formatNumber(totalAnaTL)}</td>
+                    <td style="font-weight:700;">${formatNumber(totalPerPaxTL)}</td>
+                    <td style="color: var(--accent-orange); font-weight:800;">${formatNumber(totalPerPaxEUR, 3)}</td>
                 `;
                 anaTbody.appendChild(trTot);
             } else if (LIVE_DATA && LIVE_DATA.stock && LIVE_DATA.stock.fb_totals) {
@@ -2230,9 +2310,9 @@
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
                         <td><strong>${item.name}</strong></td>
-                        <td>${formatNumber(item.val)} ₺</td>
-                        <td>${formatNumber(perPaxTL)} ₺</td>
-                        <td style="color: var(--accent-blue);">${formatNumber(perPaxEUR, 3)} €</td>
+                        <td>${formatNumber(item.val)}</td>
+                        <td>${formatNumber(perPaxTL)}</td>
+                        <td style="color: var(--accent-blue);">${formatNumber(perPaxEUR, 3)}</td>
                     `;
                     anaTbody.appendChild(tr);
                 });
@@ -2251,9 +2331,9 @@
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
                         <td><strong>${name}</strong></td>
-                        <td>${formatNumber(val)} ₺</td>
-                        <td>${formatNumber(perPaxTL)} ₺</td>
-                        <td style="color: var(--accent-blue);">${formatNumber(perPaxEUR, 3)} €</td>
+                        <td>${formatNumber(val)}</td>
+                        <td>${formatNumber(perPaxTL)}</td>
+                        <td style="color: var(--accent-blue);">${formatNumber(perPaxEUR, 3)}</td>
                     `;
                     anaTbody.appendChild(tr);
                 }
@@ -2265,21 +2345,32 @@
             }
 
             // Ara Grup
-            const araRows = EXCEL_DATA.AraGrup;
             const araTbody = document.querySelector("#tbl-ara-grup tbody");
             araTbody.innerHTML = "";
             
-            for (let i = 2; i < araRows.length; i++) {
-                const row = araRows[i];
-                if (!row[1]) continue;
-                
-                const val = parseFloat(row[2]) * mtdFactor;
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${row[1]}</td>
-                    <td style="font-weight: 600;">${formatNumber(val)} ₺</td>
-                `;
-                araTbody.appendChild(tr);
+            if (LIVE_DATA && LIVE_DATA.stock && LIVE_DATA.stock.ara_grup && LIVE_DATA.stock.ara_grup.length > 0) {
+                LIVE_DATA.stock.ara_grup.forEach(item => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${item.name}</td>
+                        <td style="font-weight: 600;">${formatNumber(item.val)}</td>
+                    `;
+                    araTbody.appendChild(tr);
+                });
+            } else if (EXCEL_DATA && EXCEL_DATA.AraGrup) {
+                const araRows = EXCEL_DATA.AraGrup;
+                for (let i = 2; i < araRows.length; i++) {
+                    const row = araRows[i];
+                    if (!row[1]) continue;
+                    
+                    const val = parseFloat(row[2]) * mtdFactor;
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${row[1]}</td>
+                        <td style="font-weight: 600;">${formatNumber(val)}</td>
+                    `;
+                    araTbody.appendChild(tr);
+                }
             }
             
             // Alt Grup
@@ -2288,7 +2379,6 @@
 
         function filterAltGrup() {
             const mtdFactor = getMtdFactor();
-            const altRows = EXCEL_DATA.AltGrup;
             const query = document.getElementById("search-alt-grup").value.toLowerCase();
             const tbody = document.querySelector("#tbl-alt-grup tbody");
             tbody.innerHTML = "";
@@ -2297,29 +2387,54 @@
             let totalAltPaxTL = 0;
             let totalAltPaxEUR = 0;
             
-            for (let i = 2; i < altRows.length; i++) {
-                const row = altRows[i];
-                if (!row[0]) continue;
-                
-                const name = row[0];
-                if (query && !name.toLowerCase().includes(query)) continue;
-                
-                const val = parseFloat(row[1]) * mtdFactor;
-                const perPaxTL = currentPax > 0 ? (val / currentPax) : 0;
-                const perPaxEUR = perPaxTL / currentEurRate;
-                
-                totalAltTL += val;
-                totalAltPaxTL += perPaxTL;
-                totalAltPaxEUR += perPaxEUR;
-                
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${highlightText(name, query)}</td>
-                    <td><strong>${formatNumber(val)} ₺</strong></td>
-                    <td>${formatNumber(perPaxTL)} ₺</td>
-                    <td style="color: var(--accent-orange);">${formatNumber(perPaxEUR, 3)} €</td>
-                `;
-                tbody.appendChild(tr);
+            if (LIVE_DATA && LIVE_DATA.stock && LIVE_DATA.stock.alt_grup && LIVE_DATA.stock.alt_grup.length > 0) {
+                LIVE_DATA.stock.alt_grup.forEach(item => {
+                    const name = item.name;
+                    if (query && !name.toLowerCase().includes(query)) return;
+                    
+                    const val = item.val;
+                    const perPaxTL = currentPax > 0 ? (val / currentPax) : 0;
+                    const perPaxEUR = currentEurRate > 0 ? (perPaxTL / currentEurRate) : 0;
+                    
+                    totalAltTL += val;
+                    totalAltPaxTL += perPaxTL;
+                    totalAltPaxEUR += perPaxEUR;
+                    
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${highlightText(name, query)}</td>
+                        <td><strong>${formatNumber(val)}</strong></td>
+                        <td>${formatNumber(perPaxTL)}</td>
+                        <td style="color: var(--accent-orange);">${formatNumber(perPaxEUR, 3)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else if (EXCEL_DATA && EXCEL_DATA.AltGrup) {
+                const altRows = EXCEL_DATA.AltGrup;
+                for (let i = 2; i < altRows.length; i++) {
+                    const row = altRows[i];
+                    if (!row[0]) continue;
+                    
+                    const name = row[0];
+                    if (query && !name.toLowerCase().includes(query)) continue;
+                    
+                    const val = parseFloat(row[1]) * mtdFactor;
+                    const perPaxTL = currentPax > 0 ? (val / currentPax) : 0;
+                    const perPaxEUR = currentEurRate > 0 ? (perPaxTL / currentEurRate) : 0;
+                    
+                    totalAltTL += val;
+                    totalAltPaxTL += perPaxTL;
+                    totalAltPaxEUR += perPaxEUR;
+                    
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${highlightText(name, query)}</td>
+                        <td><strong>${formatNumber(val)}</strong></td>
+                        <td>${formatNumber(perPaxTL)}</td>
+                        <td style="color: var(--accent-orange);">${formatNumber(perPaxEUR, 3)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
             }
             
             const altSummaryElem = document.getElementById("alt-grup-kpi-summary");
@@ -2398,7 +2513,7 @@
                     <td>${highlightText(item.name, query)}</td>
                     <td>${item.unit}</td>
                     <td>${formatNumber(item.qty, 1)}</td>
-                    <td style="font-weight: 700; color: var(--accent-green);">${formatNumber(item.amount)} ₺</td>
+                    <td style="font-weight: 700; color: var(--accent-green);">${formatNumber(item.amount)}</td>
                 `;
                 tbody.appendChild(tr);
             }
@@ -2468,7 +2583,7 @@
                         <td><strong>${item.name}</strong></td>
                         <td>${item.qty !== null ? formatNumber(item.qty, 1) : '—'}</td>
                         <td><span class="badge badge-blue">${item.unit || '—'}</span></td>
-                        <td style="color: var(--accent-red); font-weight:600;">${item.amount !== null ? formatNumber(item.amount) + ' ₺' : '—'}</td>
+                        <td style="color: var(--accent-red); font-weight:600;">${item.amount !== null ? formatNumber(item.amount) : '—'}</td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -2497,7 +2612,7 @@
                         <td><strong>${item.name}</strong></td>
                         <td>${formatNumber(item.qty, 1)}</td>
                         <td><span class="badge badge-blue">${item.unit || '—'}</span></td>
-                        <td style="color: var(--accent-red); font-weight:600;">${formatNumber(item.amount)} ₺</td>
+                        <td style="color: var(--accent-red); font-weight:600;">${formatNumber(item.amount)}</td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -2585,7 +2700,7 @@
                     <td><span class="badge badge-blue">${item.code}</span></td>
                     <td><strong>${item.name}</strong></td>
                     <td>${formatNumber(item.qty, 1)} ${item.unit}</td>
-                    <td style="font-weight:700; color:var(--accent-green);">${formatNumber(item.amount)} ₺</td>
+                    <td style="font-weight:700; color:var(--accent-green);">${formatNumber(item.amount)}</td>
                     <td><span class="badge badge-orange">${formatNumber(sharePct, 1)}%</span></td>
                 `;
                 top10Tbody.appendChild(tr);
@@ -2609,7 +2724,7 @@
                     tr.innerHTML = `
                         <td><span class="badge badge-purple">${dep.code}</span></td>
                         <td><strong>${dep.name}</strong></td>
-                        <td style="font-weight:600;">${formatNumber(dep.amount)} ₺</td>
+                        <td style="font-weight:600;">${formatNumber(dep.amount)}</td>
                         <td><span class="badge badge-blue">${formatNumber(sharePct, 1)}%</span></td>
                     `;
                     depotTbody.appendChild(tr);
@@ -2632,7 +2747,7 @@
                         <td><strong>${item.name}</strong></td>
                         <td><span class="badge badge-blue">${item.unit}</span></td>
                         <td>${formatNumber(item.qty, 1)}</td>
-                        <td style="color:var(--accent-red); font-weight:700;">${formatNumber(item.amount)} ₺</td>
+                        <td style="color:var(--accent-red); font-weight:700;">${formatNumber(item.amount)}</td>
                     `;
                     zayiTbody.appendChild(tr);
                 });
@@ -2723,7 +2838,7 @@ function renderOthers() {
                     <td>${row[1]}</td>
                     <td>${row[2] || '—'}</td>
                     <td>${qty !== null ? formatNumber(qty, 1) : '—'}</td>
-                    <td style="font-weight: 600; color: var(--accent-green);">${amount !== null ? formatNumber(amount) + ' ₺' : '—'}</td>
+                    <td style="font-weight: 600; color: var(--accent-green);">${amount !== null ? formatNumber(amount) : '—'}</td>
                 `;
                 marinaTbody.appendChild(tr);
             }

@@ -201,6 +201,48 @@ def fetch_live_stock_data(start_str, end_str, mode="daily"):
             {"name": "Diğer", "val": cat_dict.get('Other', {}).get('amount', 0.0)}
         ]
 
+        # Ara Grup (SubGroup)
+        q_ara = """
+            SELECT 
+                ISNULL(sg.Remark, 'Tanımsız') AS SubGroupName,
+                SUM(ISNULL(st.Amount, 0)) AS TotalAmount
+            FROM StockTrans st
+            JOIN StockOwner so ON so.RecId = st.StockOwnerId
+            JOIN Product p ON p.RecId = st.CardId
+            LEFT JOIN SubGroup sg ON sg.RecId = p.SubRecId
+            WHERE so.Dates >= CONVERT(DATETIME, ?, 120) 
+              AND so.Dates <= CONVERT(DATETIME, ?, 120)
+              AND so.Type = ?
+            GROUP BY sg.Remark
+            ORDER BY TotalAmount DESC
+        """
+        cursor.execute(q_ara, (start_str, end_str, slip_type))
+        stock_payload["ara_grup"] = [
+            {"name": str(r[0] or '').strip(), "val": float(r[1] or 0)}
+            for r in cursor.fetchall() if (r[1] and float(r[1]) > 0)
+        ]
+
+        # Alt Grup (IntermediateGroup)
+        q_alt = """
+            SELECT 
+                ISNULL(ig.Remark, 'Tanımsız') AS InterGroupName,
+                SUM(ISNULL(st.Amount, 0)) AS TotalAmount
+            FROM StockTrans st
+            JOIN StockOwner so ON so.RecId = st.StockOwnerId
+            JOIN Product p ON p.RecId = st.CardId
+            LEFT JOIN IntermediateGroup ig ON ig.RecId = p.IntermediateRecId
+            WHERE so.Dates >= CONVERT(DATETIME, ?, 120) 
+              AND so.Dates <= CONVERT(DATETIME, ?, 120)
+              AND so.Type = ?
+            GROUP BY ig.Remark
+            ORDER BY TotalAmount DESC
+        """
+        cursor.execute(q_alt, (start_str, end_str, slip_type))
+        stock_payload["alt_grup"] = [
+            {"name": str(r[0] or '').strip(), "val": float(r[1] or 0)}
+            for r in cursor.fetchall() if (r[1] and float(r[1]) > 0)
+        ]
+
         # 4. Detaylı Stok Tüketimi
         q_detay = """
             SELECT 
